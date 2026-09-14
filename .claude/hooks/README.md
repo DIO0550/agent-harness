@@ -8,7 +8,7 @@ Claude Code のセッション中に走るフックスクリプトの置き場�
 | スクリプト | イベント | 内容 |
 | --- | --- | --- |
 | `hook-canary.sh` | `PreToolUse` (Bash) | **カナリア**。`echo hook-canary` を必ず deny する。フックが発火する環境かを確かめるためだけのもの |
-| `session-url-notice.sh` | `SessionStart` | **セッション URL の提示**。Issue へ残すよう促す(AGENTS.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」) |
+| `session-url-notice.sh` | `SessionStart` | **セッション URL の提示**。Issue へ残すよう促す(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」) |
 | `record-firings.sh` | `SessionStart` / `PostToolUse` (Skill/Task/Agent) | **スキル・サブエージェントの発火ログ**。`harness-record` の「発火」欄の材料 |
 | `post-merge-review.sh` | `PostToolUse` (Bash / merge) | **マージ後の 3 つ**を提示する(Issue への追記 / 続きの Issue / `harness-record`) |
 | `track-verification-agent-activity.sh` | `PreToolUse` + `PostToolUse` (Task/Agent) | `plan-reviewer` / `implementation-reviewer` が実行中かをマーカーで記録する |
@@ -55,7 +55,7 @@ git のイベントに対応物が無い。
 | 効かなくなるもの | CI の代替 |
 | --- | --- |
 | `block-git-during-verification-agent.sh`(セッション中の行為の禁止) | **無し**。この競合はセッションの実行タイミングだけが原因で、コミット後のリポジトリの状態には痕跡が残らない |
-| `session-url-notice.sh`(セッション URL の提示) | **無し**。URL はセッションの中にしか無く、残す先も GitHub のコメントなので、push の時点で痕跡が残らない。落ちても穴は開かない(規約が AGENTS.md に残り、失っても情報が 1 つ足りないだけでガードは破れない) |
+| `session-url-notice.sh`(セッション URL の提示) | **無し**。URL はセッションの中にしか無く、残す先も GitHub のコメントなので、push の時点で痕跡が残らない。落ちても穴は開かない(規約が rules/process.md に残り、失っても情報が 1 つ足りないだけでガードは破れない) |
 | `record-firings.sh`(発火ログ) | **無し**。ただし失敗しても穴は開かない(セッション見出しが無いログは `harness-record` が「計測対象外」と書く設計で、誤ったゼロにはならない)。カナリアと同じ「失敗してもガードが破れない」検出系 |
 | `post-merge-review.sh`(マージ後の提示) | **無し**。提示するだけでブロックしないので、落ちても穴は開かない |
 

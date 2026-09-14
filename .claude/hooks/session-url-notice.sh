@@ -3,7 +3,7 @@
 # セッション URL の提示: セッションの開始時に、そのセッションの URL と
 # 「Issue に紐づく作業ならその Issue へコメントする」ことを AI へ渡す SessionStart フック。
 #
-# 対応する規約: AGENTS.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」
+# 対応する規約: rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」
 #
 # **URL はセッションの中からしか作れない。** 規約だけに置いていた頃は、止まった経緯が
 # セッションの中にしか無いのに Issue から辿れない状態が実際に起きた
@@ -57,7 +57,7 @@ fi
 
 # 出力は JSON。message には二重引用符・バックスラッシュ・生の改行を入れない
 # (jq を使わずに組み立てるため。改行は \n のまま JSON のエスケープとして渡す)。
-message="このセッションの URL は ${session_url}。${target}着手した時点でその Issue へこの URL をコメントすること(AGENTS.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」)。\\n同じ URL のコメントが既にあれば足さない。判断待ちで止まるときは、選択肢と根拠を書いたコメントに改めて併記する。"
+message="このセッションの URL は ${session_url}。${target}着手した時点でその Issue へこの URL をコメントすること(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」)。\\n同じ URL のコメントが既にあれば足さない。判断待ちで止まるときは、選択肢と根拠を書いたコメントに改めて併記する。"
 
 cat <<JSON
 {

@@ -5,7 +5,7 @@
 # **判定は本文の綴りではなく、GitHub の GraphQL `closingIssuesReferences` に聞く。**
 # 自前の正規表現で本文を見ると、`Closes: #1` のように GitHub が実際にはリンクしない
 # 綴りでも緑になり、閉じ忘れがそこで素通りする。規約が求めるのは本文へ
-# `Closes #<番号>` と書くことだが(AGENTS.md「着手した Issue は、その回で閉じる」)、
+# `Closes #<番号>` と書くことだが(rules/process.md「着手した Issue は、その回で閉じる」)、
 # この検査が見るのは綴りではなく閉じる Issue の有無なので、GitHub の UI から
 # リンクした PR も通る。
 #
@@ -98,7 +98,7 @@ cat <<'MESSAGE'
 この PR がマージ時に閉じる Issue がありません。
 
 PR 本文に `Closes #<Issue 番号>` を書いてください
-(AGENTS.md「着手した Issue は、その回で閉じる」)。
+(rules/process.md「着手した Issue は、その回で閉じる」)。
 対応する Issue がまだ無いなら、先に立てます(implementation-flow フェーズ 1)。
 
 対象外になるのは、`harness/records/pr-<番号>.md` の新規 1 ファイルだけを持つ記録 PR です。

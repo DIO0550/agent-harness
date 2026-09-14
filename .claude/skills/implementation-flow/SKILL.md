@@ -32,14 +32,14 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 - ゴールが決まらないなら、決まらない理由(仕様の欠落 / 選択肢が割れている)を先に潰す。
   曖昧なまま計画に進むと、計画の検証が「何と照らすか」を持てない
 - **自分で潰せず回答を待つなら、そこで止める**。選択肢と根拠を Issue へ書き、
-  **作業中のセッションの URL を併記する**(`AGENTS.md`)。推測で埋めて計画へ進まない
+  **作業中のセッションの URL を併記する**(`rules/process.md`)。推測で埋めて計画へ進まない
 - 対応する Issue が無ければ**先に作る**。Issue 無しで実装を始めない(判断の置き場所が無くなる)
 - 仕様の拠り所は設計ドキュメント。このリポジトリにはまだ `docs/` が無いので、拠り所は
-  `AGENTS.md` と `rules/`、過去の実例は `harness/case-law/`
+  `rules/`、過去の実例は `harness/case-law/`
 
 ## フェーズ 2: タスクの分割
 
-`AGENTS.md`「タスクの分割」に従う。判断軸は「**独立してマージできるか**」。
+`rules/process.md`「タスクの分割」に従う。判断軸は「**独立してマージできるか**」。
 片方だけ入っても壊れない単位が 2 つ以上見えたら Issue を分ける。
 
 分けた / 分けなかったのどちらも判断なので、理由を Issue に残す。
@@ -120,7 +120,7 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 
 - 計画の順に実装する
 - **計画から外れたら、外れた時点で Issue に追記する。** 後でまとめて書くと理由が思い出せなくなる
-- `AGENTS.md`「実装を始める前に」の読む順で自己チェックを通す
+- `rules/process.md`「実装を始める前に」の読む順で自己チェックを通す
 - **コメント・doc・Issue/PR 本文に事実の主張を書いたら、書き終えるたびに
   `claim-verification` スキルで確かめる**(フェーズ6まで持ち越さない。
   `.claude/skills/claim-verification/`)
@@ -139,7 +139,7 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 ## フェーズ 7: PR
 
 - **PR 本文は差分の説明に絞る。** 判断の履歴は Issue 側にある
-- **本文に `Closes #<Issue 番号>` を書く**(`AGENTS.md`「着手した Issue は、その回で閉じる」)。
+- **本文に `Closes #<Issue 番号>` を書く**(`rules/process.md`「着手した Issue は、その回で閉じる」)。
   `.github/workflows/pr-closing-issue.yml` が、閉じる Issue を持たない PR を落とす
 - CI を通す(いまは `pr-closing-issue` のみ)
 
@@ -188,7 +188,7 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
    変わっていないなら書かない。**Issue は `Closes` で閉じているが、閉じたままコメントは残せる。
    開け直さない**
 2. **続きの作業が要るものは、新しい Issue を立てて元の Issue からリンクする**
-   (`AGENTS.md`「着手した Issue は、その回で閉じる」)。スコープ外にしたもの・
+   (`rules/process.md`「着手した Issue は、その回で閉じる」)。スコープ外にしたもの・
    決定が変わって作り直しになったものが該当する
 3. **`harness-record` スキルでその回の評価を記録する**。記録を残すところまでで、集計と規約の
    見直しは行わない(→ `harness-growth`)

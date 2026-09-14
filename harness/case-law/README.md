@@ -24,7 +24,7 @@
 | `plan-reviewer` / `implementation-reviewer` | 検証のたび（`rules/` と対で読む） |
 | 実装するエージェント | **その分類で実際に迷ったとき / 指摘を受けたとき**だけ |
 
-常時ロードはしない（`CLAUDE.md` の `@` import に入れない）。**入れた時点で分けた意味が消える。**
+常時ロードはしない（取り込む側の入口ファイルの `@` import に入れない）。**入れた時点で分けた意味が消える。**
 
 ## 誰が書くか
 
@@ -45,4 +45,4 @@
 | [testing.md](testing.md) | `rules/testing.md` |
 | [ui.md](ui.md) | **まだ無い**（移植元の `rules/ui-verification.md` は Storybook / Playwright 前提。UI を持つまで規範側は立てない） |
 | [planning.md](planning.md) | `implementation-flow` フェーズ 3〜4（規範は `.claude/agents/plan-reviewer.md`） |
-| [process.md](process.md) | ハーネスの運用そのもの（サブエージェント・フック環境・規約の書き換え） |
+| [process.md](process.md) | `rules/process.md` と `.claude/skills/` 各スキル（サブエージェント・フック環境・規約の書き換え） |

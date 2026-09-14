@@ -138,7 +138,7 @@ fi
 #
 # 増やす側は count.sh が数字を出して 2a / 2b / 2c が分岐するのに対し、縮める側は
 # 条件が満たされているかを目で確かめる形だったため、一度も発火していなかった
-# （rules/ と AGENTS.md が正味マイナスになったコミットは全履歴で 0 件）。
+# （rules/ が正味マイナスになったコミットは全履歴で 0 件）。
 # 同じように数字で出して、判断の入力を揃える。
 if [ "${1:-}" = "--shrink" ]; then
   printf '%s\n\n' "縮める候補（harness-growth の SKILL.md「Step 3」）"
@@ -165,9 +165,9 @@ if [ "${1:-}" = "--shrink" ]; then
   printf '%s\n\n' "${unused:-     該当なし}"
 
   printf '%s\n' "3. 常時ロードの行数"
-  loaded="$(cd ../.. && wc -l AGENTS.md rules/*.md | tail -1 | awk '{print $1}')"
+  loaded="$(cd ../.. && wc -l rules/*.md | tail -1 | awk '{print $1}')"
   growth="$(wc -l < ../../.claude/skills/harness-growth/SKILL.md)"
-  printf '     %-34s %4s / %s 行%s\n' "AGENTS.md + rules/" "$loaded" 900 \
+  printf '     %-34s %4s / %s 行%s\n' "rules/" "$loaded" 900 \
     "$([ "$loaded" -gt 900 ] && printf ' ← 超過' || true)"
   printf '     %-34s %4s / %s 行%s\n\n' "harness-growth/SKILL.md" "$growth" 200 \
     "$([ "$growth" -gt 200 ] && printf ' ← 超過' || true)"

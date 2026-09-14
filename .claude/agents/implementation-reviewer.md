@@ -30,7 +30,7 @@ tools: Read, Grep, Glob, Bash
 `Result` / `Option`・型による境界に触れる箇所は、移植元（design-composer）の
 `rules/hooks.md` / `rules/ui-verification.md` / `rules/architecture.md` / `rules/coding.md` の
 TypeScript 固有の節を前提にしている。対応する規範がこのリポジトリに入るまでは、その観点の
-指摘は返さない（AGENTS.md「規約一覧」に何があるかで判断する）。観点の文面を残してあるのは、
+指摘は返さない（`rules/` に何があるかで判断する）。観点の文面を残してあるのは、
 スタックが決まって規範を足すときの下敷きにするため。
 
 ---

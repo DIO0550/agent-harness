@@ -82,7 +82,7 @@ if [ "$calls" -le "$FAIL_TIMES" ]; then
   echo "gh: HTTP 502" >&2
   exit 1
 fi
-echo '{"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":1}]},"files":{"totalCount":9,"nodes":[{"path":"AGENTS.md","changeType":"MODIFIED"}]}}}}}'
+echo '{"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[{"number":1}]},"files":{"totalCount":9,"nodes":[{"path":"rules/process.md","changeType":"MODIFIED"}]}}}}}'
 STUB
   chmod +x "$dir/bin/gh"
 

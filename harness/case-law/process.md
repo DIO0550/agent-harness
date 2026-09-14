@@ -1,6 +1,6 @@
 # 判例: ハーネスの運用
 
-規範は [`CLAUDE.md`](../../CLAUDE.md) と `.claude/skills/` 各スキル。ここはその実例。
+規範は [`rules/process.md`](../../rules/process.md) と `.claude/skills/` 各スキル。ここはその実例。
 
 この 3 つの語彙は、`なし` として溜まっていた 14 件を `harness-growth` の「逃し弁」で
 グルーピングして昇格させたもの（pr-233 時点）。
@@ -62,7 +62,7 @@
 
 ## セッションの URL を Issue に残す — 層を上げられない理由
 
-規範は `AGENTS.md`「Issue に紐づいて起動したら、セッションの URL を Issue に残す」。層 3
+規範は `rules/process.md`「Issue に紐づいて起動したら、セッションの URL を Issue に残す」。層 3
 （`session-url-notice.sh` / SessionStart）まで上げてある。**URL はセッションの中からしか
 作れない**ので、規約だけに置くと「残そうと思ったが URL が分からない」で止まる。
 

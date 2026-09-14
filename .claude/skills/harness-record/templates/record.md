@@ -134,7 +134,7 @@ pr-317 以前の記録には `レビュー`(括弧なし)・`レビュー（人�
 
 **表の「対応する規約」が `rules/architecture.md` / `rules/hooks.md` / `rules/components.md` /
 `rules/ui-verification.md` を指す行は、このリポジトリにまだ無い規範を指している**(移植元の
-フォルダ構成・React・Storybook を前提にしていて持ってきていない → AGENTS.md「規約一覧」)。
+フォルダ構成・React・Storybook を前提にしていて持ってきていない → README.md「使い方」)。
 その形が実際に起きたら、記録では分類だけを使い、規範を立てるかどうかは `harness-growth` が
 判断する。語彙を残してあるのは、分類を後から作り直すと過去の記録と数が繋がらなくなるため。
 
@@ -205,12 +205,12 @@ pr-317 以前の記録には `レビュー`(括弧なし)・`レビュー（人�
 | `plan-comment-reference` | `plan-review.md`「ファイル表に挙がっているか」(移動・書き換えの対象を doc / Why コメント内でだけ名指ししているシンボルが、コードの参照だけを拾ったファイル表に挙がっていない形) |
 | `plan-migration-mapping` | `plan-review.md`「リファクタ・分割で消えるテストケースの移送先が計画に書かれているか」(既存テストファイルの分割・統合で、元のケース一覧と新しいファイルへの対応が計画に無く、観点が黙って抜け落ちる形) |
 | `plan-implicit-condition` | `plan-review.md`「既存のコードが前提にしている不変条件を、この計画が崩さないか」(述語の統合・参照方式の変更で、それまで暗黙に満たしていた条件・挙動が計画に書かれないまま変わる形) |
-| `plan-split-usability` | `plan-review.md`「タスクの分割は届く単位で見る」(AGENTS.md「タスクの分割」の「独立してマージできるか」だけを基準に分け、届けた PR 単体では動作確認できない・症状が直っていない状態のまま出す形。残りをどう束ねる/同じ PR へ畳むかの基準が計画に無い) |
+| `plan-split-usability` | `plan-review.md`「タスクの分割は届く単位で見る」(rules/process.md「タスクの分割」の「独立してマージできるか」だけを基準に分け、届けた PR 単体では動作確認できない・症状が直っていない状態のまま出す形。残りをどう束ねる/同じ PR へ畳むかの基準が計画に無い) |
 | `version-bump-unverified` | `plan-review.md`「版を上げる判断は実物の状態で検算する」(フォーマットバージョン等を上げる判断が規約の文面としては正しくても、判断が前提にする実物の状態(該当ファイルの実在・その版で動作確認済みか)を確かめていない形) |
 | `plan-rejection-reasoning` | implementation-flow フェーズ 3(SKILL.md「計画」フェーズ 3 手順 5)(却下案・据え置き判断の理由が、実際のコード・仕様・時系列に照らして成立しているかを検算していない形。理由が事実と違う/実際に起こりやすい向きと逆/一時的な事実に依っている/対象の一部しか覆っていない、を含む) |
 | `plan-rejection-coverage` | implementation-flow フェーズ 3(SKILL.md「計画」フェーズ 3 手順 6)(却下案の一覧に、実在するいちばん近い代替案が挙がっておらず、却下の検討そのものが閉じないまま計画が進む形) |
-| `rules-consistency` | AGENTS.md「規約の更新」/ `harness-growth`「Step 2a-1」(規約へ足した記述が、同じファイルの前の節と矛盾する / 規約自身が挙げている例で判定文が逆の答えを出す / 表の行が実在するケースを網羅していない / Why not の根拠が一時的な事実になっている形) |
-| `docs-consistency` | AGENTS.md「規約の更新」/ `rules-consistency` の docs 版(`docs/` へ新設・追記した記述が、同じファイルの既存の記述・参照形式と矛盾する / 両方が同時に成立する入力が実在する形。`rules-consistency` は `rules/` への追記のみが対象で `docs/` を含まない) |
+| `rules-consistency` | rules/process.md「規約の更新」/ `harness-growth`「Step 2a-1」(規約へ足した記述が、同じファイルの前の節と矛盾する / 規約自身が挙げている例で判定文が逆の答えを出す / 表の行が実在するケースを網羅していない / Why not の根拠が一時的な事実になっている形) |
+| `docs-consistency` | rules/process.md「規約の更新」/ `rules-consistency` の docs 版(`docs/` へ新設・追記した記述が、同じファイルの既存の記述・参照形式と矛盾する / 両方が同時に成立する入力が実在する形。`rules-consistency` は `rules/` への追記のみが対象で `docs/` を含まない) |
 | `subagent-control` | `implementation-flow`「サブエージェントの使い方」(検証エージェントが指示に反して実装を書き換えた / バックグラウンド起動の結果を取り逃した形) |
 | `hook-environment` | `.claude/hooks/README.md`「強制力の序列」(`echo hook-canary` が deny されず、`.claude/hooks/` が発火しない実行環境だった形のうち、git hooks / CI の後工程が担保していて実害が無かった形。本来ブロック・検知するはずだった操作や欠陥が実際に素通りした形は `hook-environment-guard-miss`) |
 | `hook-environment-guard-miss` | `.claude/hooks/README.md`「強制力の序列」(同上のうち、PreToolUse / PostToolUse が発火しなかったことで、本来その場でブロック・検知するはずだった操作や欠陥が実際に素通りし、コミットへの混入・禁止コマンドの実行・レビューまでの検知漏れなど後工程まで残った形) |
