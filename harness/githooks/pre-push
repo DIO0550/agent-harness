@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# push 前の検査（git ネイティブのフック）。Claude Code の配線に依存しない最終網。
+#
+# 発火条件だけが .claude/hooks/ と違い、こちらは CLI・IDE・素の git のどれから push しても
+# 必ず走る（.claude/hooks/README.md「強制力の序列」）。
+#
+# 配線: git config core.hooksPath harness/githooks
+#
+# **いま検査できるのはハーネス自身のシェルスクリプトだけ。** このリポジトリはまだ
+# アプリケーションのソースを持たないので、型チェック・lint・テストに当たるものが無い。
+# ソースが入ったら、その言語の検査をここへ足す（rules/coding.md「規約の適用範囲」により、
+# ハーネス自身のツールのコードも同じ規約の対象）。
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+# 1 つずつ独立に実行する。&& で連ねると途中の出力が流れて末尾しか見えない。
+#
+# ツールが無い環境では、そのツールを使う検査だけを飛ばして黙って通す
+# （検査できないことを理由に止めても検査の質は上がらないため）。
+
+echo "pre-push: シェルスクリプトの構文"
+while IFS= read -r script; do
+  bash -n "$script"
+done < <(git ls-files '*.sh' 'harness/githooks/pre-push')
+
+if command -v shellcheck >/dev/null 2>&1; then
+  echo "pre-push: shellcheck"
+  git ls-files '*.sh' 'harness/githooks/pre-push' | xargs shellcheck
+else
+  echo "pre-push: shellcheck が無いため飛ばします"
+fi
+
+# 判定表は、検出器の判定が変わっていないことを終了コードで示す。
+# どちらも python3 / jq を使うので、無い環境では飛ばす。
+if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  echo "pre-push: カナリアの判定表"
+  bash .claude/hooks/lib/canary-cases.sh
+
+  echo "pre-push: 閉じる Issue の検査の判定表"
+  bash .github/scripts/check-pr-closing-issue-cases.sh
+else
+  echo "pre-push: python3 / jq が無いため判定表は飛ばします"
+fi
