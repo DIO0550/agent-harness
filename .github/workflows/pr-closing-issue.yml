@@ -1,0 +1,46 @@
+# PR がマージ時に閉じる Issue を持っているかの検査（rules/process.md「着手した Issue は、その回で閉じる」）。
+#
+# **本文の編集（`edited`）で再実行する必要がある**ので、単独のワークフローにしてある。
+# 検査ワークフローが他にも増えたら、そちらへ `edited` を足さずにここへ残すこと。
+# 足すと、本文を直しただけで lint / test が丸ごと走り直す。
+name: pr-closing-issue
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: pr-closing-issue-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  closing-issue:
+    # **このジョブはまだ必須チェックに登録されていない。** 登録はリポジトリ側の
+    # ブランチ保護の設定で、ここからは変更できない。登録されるまでは赤く出るだけで
+    # マージは止まらないので、閉じ忘れた PR を止めたいなら登録が要る。
+    # 登録したあとはジョブ名を変えない（必須チェックは名前で対応しているので外れる）。
+    name: PR が閉じる Issue のチェック
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # `closingIssuesReferences` が返すのは Issue なので、`pull-requests` だけでは足りない
+    # （`permissions:` を書いた時点で、書かなかったスコープは none になる）
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 1
+
+      # PR 本文はシェルへ渡さない（PR 番号だけ渡す）ので、`${{ }}` の展開が
+      # コマンドになる経路を作らない
+      - name: 閉じる Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bash .github/scripts/check-pr-closing-issue.sh
