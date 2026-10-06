@@ -6,56 +6,29 @@
 # 使い方: bash .claude/hooks/lib/canary-cases.sh
 # 出力が `ok` だけなら期待どおり。`NG` が 1 行でも出たら判定が変わっている。
 #
+# 表の形・期待の意味・走らせ方は `lib/case-table.sh` が持つ。
+#
 # **ケースをこのファイルに置くのは、Bash コマンドへ直接書くとカナリア自身に
 # 止められるため。** `cd /tmp && echo hook-canary` のような行は本物の呼び出しとして
 # 切り出されるので、表を書いたコマンドがそのまま deny される(実測)。ファイルの
 # 中身はコマンド本文ではないので切り出されない。
 #
-# 表は `期待|コマンド` の 1 行 1 ケース。コマンド中の `@@` は改行に置き換わる
-# (1 行に収めるため。改行区切りで連ねた形も 1 ケースとして書ける)。期待は 3 つ。
-#
-# | 期待 | 意味 |
-# | --- | --- |
-# | `deny` | 止まってほしい |
-# | `pass` | 止まってはいけない(誤検知したら信用を失う側) |
-# | `miss` | **意図した取りこぼし。** 止められれば理想だが、誤検知を避けるために諦めた形。
-#            期待の綴りを分けてあるのは、`pass` と並べると次に読む人がバグと読んで
-#            `hook-canary.sh` の Why not ごと消しにいくため |
-#
-# **JSON の組み立てに python3 を使う。** カナリア本体が外部コマンドへ依存しないのは
-# フックが素通りしても気づけないからで、手で走らせるこの表は落ちれば分かる。
-# python3 が無い環境では deny 側が全件 NG になるので、判定が変わったと読み違えないこと。
+# **jq が無い環境では deny 側が全件 NG になる**(`case-table.sh` が JSON の組み立てに
+# python3 を使い、`hook-canary.sh` は jq が無いと生 JSON から読んで引用符で値が切れる)。
+# 判定が変わったと読み違えないこと。
 set -uo pipefail
+
+lib_dir="$(cd "$(dirname "$0")" && pwd)"
+source "$lib_dir/case-table.sh"
+hook_path="$lib_dir/../hook-canary.sh"
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "注意: jq が無いので生 JSON へのフォールバック経路で走る。引用符を含むケースと"
   echo "      改行で連ねたケースは値が取り出せず pass になる(hook-canary.sh の doc 参照)。"
 fi
 
-hook_path="$(dirname "$0")/../hook-canary.sh"
 failed=0
-
-while IFS='|' read -r expected case_command; do
-  [ -n "$case_command" ] || continue
-  case_command="${case_command//@@/$'\n'}"
-  payload="$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"command":sys.argv[1]}}))' "$case_command")"
-  output="$(printf '%s' "$payload" | bash "$hook_path")"
-  if [ -n "$output" ]; then
-    decision="deny"
-  else
-    decision="pass"
-  fi
-  # 意図した取りこぼしは pass になるのが正解。
-  if [ "$expected" = "miss" ] && [ "$decision" = "pass" ]; then
-    decision="miss"
-  fi
-  if [ "$decision" = "$expected" ]; then
-    printf 'ok   %-4s %s\n' "$expected" "$case_command"
-    continue
-  fi
-  printf 'NG   expected=%s got=%s  %s\n' "$expected" "$decision" "$case_command"
-  failed=1
-done <<'CASES'
+run_case_table "$hook_path" <<'CASES' || failed=1
 deny|echo hook-canary
 deny|echo hook-canary && echo done
 deny|cd /tmp && echo hook-canary
@@ -90,9 +63,8 @@ CASES
 # 長さの上限を超えると走査しない(意図した取りこぼし)。表の 1 行には収まらないので個別に見る。
 printf -v padding '%*s' 2100 ''
 long_command="${padding// /x} && echo hook-canary"
-long_payload="$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"command":sys.argv[1]}}))' "$long_command")"
-if [ -z "$(printf '%s' "$long_payload" | bash "$hook_path")" ]; then
-  printf 'ok   %-4s %s\n' "miss" "2100 字のコマンドに連ねた形(走査の上限を超える)"
+if [ "$(hook_judge "$hook_path" "$long_command")" = "pass" ]; then
+  printf 'ok   %-8s %s\n' "miss" "2100 字のコマンドに連ねた形(走査の上限を超える)"
 else
   printf 'NG   expected=%s got=%s  %s\n' "miss" "deny" "2100 字のコマンドに連ねた形"
   failed=1

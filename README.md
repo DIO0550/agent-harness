@@ -70,6 +70,7 @@ bash harness/records/count.sh             # 分類ごとの再発数を数える
 bash harness/records/count.sh --shrink    # 縮める候補を出す（harness-growth の Step 3）
 wc -l rules/*.md                          # 常時ロードの行数（上限 900）
 bash .claude/hooks/lib/canary-cases.sh    # カナリアの判定表
+bash .claude/hooks/lib/run-without-install-cases.sh   # 取ってきて即実行するコマンドの判定表
 bash .github/scripts/check-pr-closing-issue-cases.sh  # 閉じる Issue の検査の判定表
 ```
 

@@ -25,7 +25,7 @@ git config --get core.hooksPath   # → harness/githooks
 
 | フック | 検査 | 呼んでいるもの |
 | --- | --- | --- |
-| `pre-push` | シェルスクリプトの構文 / shellcheck / 検出器の判定表 | `bash -n`・`shellcheck`・`.claude/hooks/lib/canary-cases.sh`・`.github/scripts/check-pr-closing-issue-cases.sh` |
+| `pre-push` | シェルスクリプトの構文 / shellcheck / 検出器の判定表 | `bash -n`・`shellcheck`・`.claude/hooks/lib/canary-cases.sh`・`.claude/hooks/lib/run-without-install-cases.sh`・`.github/scripts/check-pr-closing-issue-cases.sh` |
 
 | スクリプト | 呼ばれ方 | 内容 |
 | --- | --- | --- |

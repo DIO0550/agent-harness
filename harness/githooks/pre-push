@@ -33,10 +33,13 @@ else
 fi
 
 # 判定表は、検出器の判定が変わっていないことを終了コードで示す。
-# どちらも python3 / jq を使うので、無い環境では飛ばす。
+# いずれも python3 / jq を使うので、無い環境では飛ばす。
 if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   echo "pre-push: カナリアの判定表"
   bash .claude/hooks/lib/canary-cases.sh
+
+  echo "pre-push: 取ってきて即実行するコマンドの判定表"
+  bash .claude/hooks/lib/run-without-install-cases.sh
 
   echo "pre-push: 閉じる Issue の検査の判定表"
   bash .github/scripts/check-pr-closing-issue-cases.sh
