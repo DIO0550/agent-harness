@@ -139,8 +139,8 @@ TypeScript 固有の節を前提にしている。対応する規範がこのリ
 
 ## コメントの過剰さの観点
 
-`分類: comment-excess`。`rules/coding.md`「コメントは doc と Why / Why not に絞る」の
-「消すのは」の列挙は、typecheck・lint のどちらも強制しない。
+`分類: comment-excess`。`rules/coding.md`「コメントは doc と Why / Why not に絞る」と、消すものの
+列挙(`harness/case-law/coding.md`「消すコメントの見分け」)は、typecheck・lint のどちらも強制しない。
 
 - **型・テスト・lint が守っている理由をコメントへ書き写していないか。** コードとテストを
   読めば分かる説明(「`default` を置かないので case の抜けがコンパイルエラーになる」等)
