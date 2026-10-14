@@ -1,6 +1,6 @@
 ---
 name: implementation-flow
-description: "agent-harness の実装を ゴールの確定 → タスクの分割 → 計画 → サブエージェント(plan-reviewer)による計画検証 → 実装 → サブエージェント(implementation-reviewer)による実装検証 → PR → マージ後の追記 の順で進める。計画と却下案は Issue に追記する。機能追加・バグ修正・リファクタリングなど、このリポジトリのソースへ手を入れる依頼を受けたら最初に使用する。「実装して」「直して」「対応して」「Issue #N をやって」「計画を立てて」といった依頼では積極的に使用すること。"
+description: "agent-harness の実装を ゴールの確定 → タスクの分割 → 計画 → サブエージェント(plan-reviewer)による計画検証 → 実装 → サブエージェント(implementation-reviewer)による実装検証 → PR → マージ後の追記 の順で進める。計画は planner、実装は implementer のサブエージェントが担い、親セッションは振り分けと採否と記録を行う指示役になる。計画と却下案は Issue に追記する。機能追加・バグ修正・リファクタリングなど、このリポジトリのソースへ手を入れる依頼を受けたら最初に使用する。「実装して」「直して」「対応して」「Issue #N をやって」「計画を立てて」といった依頼では積極的に使用すること。"
 ---
 
 # 実装フロー
@@ -21,6 +21,30 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 
 **検証の観点はこのファイルに書かない。** `.claude/agents/plan-reviewer.md` と
 `.claude/agents/implementation-reviewer.md` が持つ。観点を親のコンテキストへ通さないための分割。
+
+## 役割の分担
+
+**親セッションは指示役で、計画も実装も自分では書かない。** 計画は `planner`、実装と採用した指摘の
+修正は `implementer` が担う。親のコンテキストに調査の過程と差分の書きかけを積まず、採否と記録の
+判断だけを残すための分割。
+
+| フェーズ | 担当 |
+| --- | --- |
+| 1 ゴールの確定 / 2 タスクの分割 | 親 |
+| 3 計画 | `planner`。返ってきた計画を親が Issue へ書く |
+| 4 計画の検証 | 親が `plan-reviewer` へ渡し、採否を決める。直しは `planner` へ戻す |
+| 5 実装 | `implementer` |
+| 6 実装の検証 | 親が `implementation-reviewer` へ渡し、採否を決める。直しは `implementer` へ戻す |
+| 7 PR / 8 マージ後 | 親(push 前検査・commit・push・PR・Issue への追記) |
+
+- **親はリポジトリの中のファイルを編集しない**(ソースに限らず `.claude/` `harness/` `rules/` も)。
+  修正の小ささは理由にしない(1 行でも `implementer` に渡す)。線引きを毎回判断すると分担が崩れる
+- 親が作業ツリーを変えてよいのは、判断を伴わない次の 2 つだけ
+  - 整形などの自動修正コマンドをフェーズ 7 で走らせる
+  - 検証エージェントの書き換えを、基準のコミットへ `git restore` / `git clean` で戻す
+    (「サブエージェントの使い方」)
+- Issue・PR 本文を書くのは親。`planner` / `implementer` は返すだけ
+- この分担は `implementation-flow` の中だけで、`harness-record` / `harness-growth` には及ばない
 
 ---
 
@@ -46,16 +70,25 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 
 ## フェーズ 3: 計画
 
-**Issue に追記する。** 書くのは次の 4 つ。
+**`planner` に立てさせ、返ってきた計画を親が Issue に追記する。** 渡すもの:
+
+```text
+ゴール: <ゴール>
+Issue: #<番号>
+分割の判断: <分けた / 分けなかった理由と、スコープ外にしたもの>
+```
+
+計画に書くのは次の 4 つ。
 
 1. **変更するファイルと、そこに何を置くか。**
+   行の単位で直す記述があるなら「何行目のどの記述をどう直すか」まで書く。
    **公開 API を変える場合は、それを呼んでいるテスト・サンプルも変更するファイルとして
    数える**(数え漏らすと、検査が落ちる状態で計画が固まる)。
    **列挙・分岐へ枝を足す場合も同じく数える**(枝を足しても既存のテスト・検査は落ちないので、
    数え漏らしても誰も教えてくれない)
 2. **テストケースの一覧。** 仕様の文(「◯◯のとき□□になる」)で書く(`rules/testing.md`)
 3. **却下した案と、やめた理由**
-4. **未決の判断**(あれば)
+4. **未決の判断。** 無いなら「無し」と、各セクションを洗った結果を 1 行で書く
 
 却下案を残すのは、後で同じ案が再浮上したときに前回の理由が失われるため。
 「A にした」だけでは、B を試していないのか、試して駄目だったのかが読めない。
@@ -113,21 +146,32 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 計画: <変更するファイルと置くもの / テストケースの一覧 / 却下した案とその理由 / 未決の判断>
 ```
 
-指摘は握りつぶさない。**受け入れるなら計画を直し、受け入れないなら理由を Issue に書く。**
+指摘は握りつぶさない。**受け入れるなら前回の計画と採用した指摘を `planner` に渡して直させ、
+受け入れないなら理由を Issue に書く。**
 どちらも書かずに実装へ進まない。指摘が計画の前提(ゴール)を揺らしているならフェーズ 1 へ戻る。
 
 ## フェーズ 5: 実装
 
-- 計画の順に実装する
-- **計画から外れたら、外れた時点で Issue に追記する。** 後でまとめて書くと理由が思い出せなくなる
-- `rules/process.md`「実装を始める前に」の読む順で自己チェックを通す
-- **コメント・doc・Issue/PR 本文に事実の主張を書いたら、書き終えるたびに
-  `claim-verification` スキルで確かめる**(フェーズ6まで持ち越さない。
-  `.claude/skills/claim-verification/`)
+**`implementer` を前面で単独で起動する**(同じメッセージに他のツール呼び出しを並べない。理由は
+「サブエージェントの使い方」)。渡すもの:
+
+```text
+ゴール: <ゴール>
+Issue: #<番号>
+計画: <plan-reviewer を通した計画と却下案>
+```
+
+- 実装の手順は `.claude/agents/implementer.md` が持つ
+- **`implementer` が計画から外れて止めて返ってきたら、** 親が外れた理由を Issue に追記してから、
+  続けるかを決めて起動し直す。後でまとめて書くと理由が思い出せなくなる
+- **Issue・PR 本文に事実の主張を書いたら、書き終えるたびに親が `claim-verification` スキルで
+  確かめる**(フェーズ6まで持ち越さない。`.claude/skills/claim-verification/`)
 
 ## フェーズ 6: 実装の検証(`implementation-reviewer`)
 
-実装が一通り終わったら差分を `implementation-reviewer` サブエージェントへ渡す。
+実装が一通り終わったら差分を `implementation-reviewer` サブエージェントへ渡す。**単独で、前面で
+起動する**(同じメッセージに他のツール呼び出しを並べない)。実装を壊して確かめるので、背景で
+起動すると git 操作の抑止が効かない(「サブエージェントの使い方」)。
 
 ```text
 ゴール: <ゴール>
@@ -136,12 +180,16 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 
 この位置に置くのは、過剰な防御が PR に出た後だと差分の意図と絡んで剥がしにくくなるため。
 
+返ってきた指摘の採否を決め、採用したものを `implementer` に渡して直させる。採らないものは理由を
+Issue に書く。
+
 ## フェーズ 7: PR
 
 - **PR 本文は差分の説明に絞る。** 判断の履歴は Issue 側にある
 - **本文に `Closes #<Issue 番号>` を書く**(`rules/process.md`「着手した Issue は、その回で閉じる」)。
   `.github/workflows/pr-closing-issue.yml` が、閉じる Issue を持たない PR を落とす
-- CI を通す(いまは `pr-closing-issue` のみ)
+- CI を通す(いまは `pr-closing-issue` のみ)。push 前の検査や CI が落ちたら、直しは
+  `implementer` に渡す(判断を伴わない自動修正コマンドだけは親が走らせてよい →「役割の分担」)
 
 **push の前に、まずフックが発火する環境かを確かめ、続けて CI と同じ検査を 1 つずつ
 独立に実行して結果を確認する。**
@@ -200,13 +248,19 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
 
 - **検証は必ず別のエージェントに投げる。** 自分で書いた計画を自分で検証しても同じ前提のまま
   読むので、抜けが同じ位置に残る
-- 検証エージェントに実装させない。指摘だけを返させ、直すかどうかはこちらで判断する
-- **返ってきたら、指摘を読む前に `git status` を見る**(`分類: subagent-control`)。
-  エージェント定義に「変更するな」と書いても書き換えることがある。戻さずに指摘へ対応すると、
-  自分の変更とエージェントの書き換えが混ざってコミットに載る
-- **実行中に git add / commit / push を挟まない。** ミューテーション実測の途中でコミットすると、
+- 検証エージェントに実装させない。指摘だけを返させ、直すかどうかはこちらで判断する。
+  直すのは `implementer` で、検証エージェントとは別に起動する
+- **`implementer` から返ったら、`git status --porcelain` を「計画のファイル表と、渡した指摘の対象」と
+  突き合わせる。** 一致したら commit して、それを作業ツリーの基準にする(push はフェーズ 7)
+- **それ以外のエージェントから返ったら、指摘を読む前に作業ツリーが基準のまま
+  (`git status --porcelain` が空)かを見る**(`分類: subagent-control`)。エージェント定義に
+  「変更するな」と書いても書き換えることがある。戻さずに指摘へ対応すると、`implementer` の変更と
+  エージェントの書き換えが混ざってコミットに載る
+- **直しは `SendMessage` で続けず、新しい Agent 呼び出しで `implementer` に渡す。** 実行中の印を
+  作るフックの matcher は `Task|Agent` で、`SendMessage` には当たらない(`.claude/settings.json`)
+- **実行中に git add / commit / push を挟まない。** ミューテーション実測や実装の途中でコミットすると、
   その瞬間の書き換えが載る(pr-391 #18)。`block-git-during-verification-agent.sh` が
-  plan-reviewer / implementation-reviewer の実行中はここを機械的に止める
+  plan-reviewer / implementation-reviewer / implementer の実行中はここを機械的に止める
   (`.claude/hooks/README.md`)。**止まるのは前面で起動したときだけ**(背景で起動すると起動の
   直後に PostToolUse が走り、印が消える)。`run_in_background: true` を明示した起動は
   `track-verification-agent-activity.sh` が拒否する
@@ -217,7 +271,9 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
 
 | ファイル | 内容 | 読むタイミング |
 | --- | --- | --- |
+| `.claude/agents/planner.md` | 計画を立てるエージェントの受け取るもの・返すもの | フェーズ 3 |
 | `.claude/agents/plan-reviewer.md` | 計画の検証観点(エージェントが読む) | フェーズ 4 |
+| `.claude/agents/implementer.md` | 実装するエージェントの受け取るもの・返すもの | フェーズ 5 / 6 / 7 |
 | `.claude/agents/implementation-reviewer.md` | 実装の検証観点(エージェントが読む) | フェーズ 6 |
 | `.claude/skills/claim-verification/SKILL.md` | コメント・doc・PR/Issue 本文の事実主張を書く前に確かめる手順 | フェーズ 3 / 5 |
 | [`harness/case-law/planning.md`](../../../harness/case-law/planning.md) | 計画で過去に踏んだ実例 | フェーズ 3 |

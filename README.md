@@ -44,7 +44,7 @@ echo hook-canary                          # フックが発火する環境かを
 | [`harness/records/`](harness/records/) | マージ後の評価記録。`count.sh` が分類ごとの再発数を数える |
 | [`harness/githooks/`](harness/githooks/) | 実行環境に依存しない push 前検査（層 2） |
 | [`.claude/skills/`](.claude/skills/) | 進め方（`implementation-flow` / `harness-record` / `harness-growth` / `claim-verification`） |
-| [`.claude/agents/`](.claude/agents/) | 検証の観点（`plan-reviewer` / `implementation-reviewer` / `harness-counter`） |
+| [`.claude/agents/`](.claude/agents/) | 計画と実装の担い手（`planner` / `implementer`）と検証の観点（`plan-reviewer` / `implementation-reviewer` / `harness-counter`） |
 | [`.claude/hooks/`](.claude/hooks/) | セッション中に効くフック（層 3） |
 | [`.github/`](.github/) | 無条件に効く検査（層 1） |
 
@@ -52,8 +52,9 @@ echo hook-canary                          # フックが発火する環境かを
 
 **指摘を数えて、効く層へ上げる。**
 
-1. 実装は `implementation-flow` の 8 フェーズで進む（計画 → `plan-reviewer` → 実装 →
-   `implementation-reviewer` → PR）
+1. 実装は `implementation-flow` の 8 フェーズで進む（`planner` の計画 → `plan-reviewer` →
+   `implementer` の実装 → `implementation-reviewer` → PR）。親セッションは振り分けと採否と記録を
+   行う指示役で、自分ではファイルを編集しない
 2. マージのたびに `harness-record` が指摘・CI 失敗・手戻りを分類タグ付きで
    `harness/records/` に 1 ファイル残す
 3. `harness-growth` が `count.sh` で「**最後の介入以降の再発数**」を数え、再発していれば

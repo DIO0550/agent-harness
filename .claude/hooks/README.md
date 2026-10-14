@@ -11,8 +11,8 @@ Claude Code のセッション中に走るフックスクリプトの置き場�
 | `session-url-notice.sh` | `SessionStart` | **セッション URL の提示**。Issue へ残すよう促す(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」) |
 | `record-firings.sh` | `SessionStart` / `PostToolUse` (Skill/Task/Agent) | **スキル・サブエージェントの発火ログ**。`harness-record` の「発火」欄の材料 |
 | `post-merge-review.sh` | `PostToolUse` (Bash / merge) | **マージ後の 3 つ**を提示する(Issue への追記 / 続きの Issue / `harness-record`) |
-| `track-verification-agent-activity.sh` | `PreToolUse` + `PostToolUse` (Task/Agent) | `plan-reviewer` / `implementation-reviewer` が実行中かをマーカーで記録する。この 2 つの起動のうち、**`run_in_background: true` を明示したものは拒否する**(背景で起動すると印が起動の直後に消えるため。フックの冒頭) |
-| `block-git-during-verification-agent.sh` | `PreToolUse` (Bash) | 上のマーカーがある間、`git add` / `commit` / `push` を拒否する |
+| `track-verification-agent-activity.sh` | `PreToolUse` + `PostToolUse` (Task/Agent) | **作業ツリーを書き換えるサブエージェントの実行中フラグ**。`plan-reviewer` / `implementation-reviewer` / `implementer` の開始・終了をセッション別・種類別のマーカーで数える。この 3 つの起動のうち、**`run_in_background: true` を明示したものは拒否する**(背景で起動すると印が起動の直後に消えるため。フックの冒頭) |
+| `block-git-during-verification-agent.sh` | `PreToolUse` (Bash) | 上のマーカーがある間、`git add` / `commit` / `push` を拒否する。古いマーカーは無視する(種類ごとに有効期間が違う。値と理由はフックの本文)。拒否文に印のディレクトリを出す |
 | `block-run-without-install.sh` | `PreToolUse` (Bash) | **インストールせずに取ってきて実行するコマンドの禁止**。`npx` / `bunx` / `uvx` / `pnpm dlx` / `yarn dlx` / `pipx run` / `npm exec` / `npm create` / `pnpm create` / `yarn create`、および引数がリモートのときの `go run` / `deno run` を拒否する |
 
 **移植元の検査フック（lint / typecheck / doc コメント / テスト規約 / import 規約 / 判別子の
@@ -26,7 +26,7 @@ Claude Code のセッション中に走るフックスクリプトの置き場�
 
 ## 配線
 
-[`.claude/settings.json`](../settings.json) の `hooks` から参照。パスは `$CLAUDE_PROJECT_DIR` 基準。
+[`.claude/settings.json`](../settings.json) の `hooks` から参照。パスは `${CLAUDE_PROJECT_DIR:-.}` 基準。
 
 `lib/` はフック本体から読む共有部品と、フックの判定を手で確かめるための表の置き場。
 `settings.json` からは参照しない。
@@ -78,7 +78,7 @@ CI の代替が**無し**。
 
 | 不発したフック | 手動で確認すること |
 | --- | --- |
-| `block-git-during-verification-agent.sh` | 検証エージェント実行中に作られたコミットの diff を、そのエージェントが直したはずの内容とだけ照合する(意図しない変更が紛れていないか) |
+| `block-git-during-verification-agent.sh` | 作業ツリーを書き換えるサブエージェントの実行中に作られたコミットの diff を、そのエージェントが返したはずの内容とだけ照合する(意図しない変更が紛れていないか) |
 | `block-run-without-install.sh` | **セッションの Bash 実行履歴を遡る。** 実行した跡はリポジトリに残らないので、見られるのは履歴だけ。`npx` 等を実行していたら、それが持ち込んだファイルが作業ツリーに無いかを `git status` で確かめる |
 
 `session-url-notice.sh` の不発は対応不要(上の表のとおり、失っても情報が 1 つ足りないだけで
@@ -92,7 +92,7 @@ silent だったフックの不発が detected に変わる。
 **通った = 不発、ではない。** カナリアは自分の取りこぼしと本当の不発を区別できないので、
 通ったときは PreToolUse の痕跡を見て決める。
 
-| カナリア | 検証エージェントのマーカー | 発火ログの見出し | 読み方 |
+| カナリア | 実行中フラグのマーカー | 発火ログの見出し | 読み方 |
 | --- | --- | --- | --- |
 | deny された | — | — | **発火している** |
 | 通った | ある | — | **カナリアの取りこぼし**。Task/Agent のフックは発火している(不発と書かない) |
@@ -104,8 +104,8 @@ ls -d "${TMPDIR:-/tmp}/agent-harness-verification-agents-${CLAUDE_CODE_SESSION_I
 grep -c $'\tsession\t' "${TMPDIR:-/tmp}/agent-harness-firings-${CLAUDE_CODE_SESSION_ID:-}.log"
 ```
 
-**マーカーは `plan-reviewer` / `implementation-reviewer` を 1 度でも通した後にしか現れない。**
-`track-verification-agent-activity.sh` がこの 2 つの Task/Agent でしか作らないため、着手直後に
+**マーカーは作業ツリーを書き換えるサブエージェントを 1 度でも通した後にしか現れない。**
+`track-verification-agent-activity.sh` がその Task/Agent でしか作らないため、着手直後に
 カナリアを実行した回は 2 行目に当たらず、マーカー無しの枝へ落ちる。
 
 マーカーが言えるのは **`Task|Agent` の PreToolUse か PostToolUse のどちらかが発火した**まで。
@@ -137,8 +137,9 @@ deny のメッセージは、`jq` / `python3` が欠けていればその名前�
 
 - `post-merge-review.sh` はマージを**ブロックしない**(`additionalContext` を返すだけ)。マージは人の判断で行われるので、記録が無いことを理由に止めても記録の質は上がらないため
   - 検知対象は `mcp__github__merge_pull_request` と `gh pr merge` のみ。素の `git merge` は見ない(ベースブランチの取り込みで日常的に走るため、拾うと誤発火のほうが多くなる)
-- `block-git-during-verification-agent.sh` は、30 分より古いマーカーを無視する。実行が異常終了してマーカーを消し損ねたときに、恒久的にブロックし続けないため(フェイルオープン側へ倒す)
-- `track-verification-agent-activity.sh` が見るのは `plan-reviewer` / `implementation-reviewer` だけ。読み取り専用のサブエージェントは作業ツリーを書き換えないので、対象を広げても実害が防げないまま誤検知だけが増える。**誤検知で止まるフックは、エスケープハッチを足す運用を招いて全体が信用されなくなる**
+- `block-git-during-verification-agent.sh` は、種類ごとの有効期間(フックの本文)より古いマーカーを無視する。実行が異常終了してマーカーを消し損ねたときに、恒久的にブロックし続けないため(フェイルオープン側へ倒す)
+  - 拒否されたのに該当するサブエージェントが動いていないなら、中断で PostToolUse が来ずに残った印。拒否文に出るディレクトリの `active.<種類>.*` がそれで、有効期間を過ぎれば無視される。**待たずに消すかは利用者に確認してから**、そのファイルを `rm` で消す。本当に実行中の印を消すと、そのサブエージェントが終わる前に git 操作が通る
+- `track-verification-agent-activity.sh` が見るのは `plan-reviewer` / `implementation-reviewer` / `implementer` だけ。`planner` など道具か定義で作業ツリーを書き換えないサブエージェントは、対象にすると背景で起動できなくなるうえ、定義に反した書き換えは返った後の `git status` で見つかる。**誤検知で止まるフックは、エスケープハッチを足す運用を招いて全体が信用されなくなる**
 
 ## 動作確認
 
