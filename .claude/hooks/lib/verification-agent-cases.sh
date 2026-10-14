@@ -16,6 +16,8 @@
 # `judge_payload` が持つ。入力の JSON は printf で組む。
 #
 # **Agent / Task の入力は Agent ツールの引数名に合わせて組んだもので、実物の PreToolUse から写していない。**
+# サブエージェントの中の Bash 呼び出しだけは、実物の入力が持つ `agent_id` / `agent_type` を載せて流す
+# (harness/case-law/process.md の実測)。
 set -uo pipefail
 
 lib_dir="$(cd "$(dirname "$0")" && pwd)"
@@ -47,16 +49,18 @@ agent_verdict() {
 #
 # @param $1 セッション
 # @param $2 コマンド(省くと `git add .`)
+# @param $3 session_id と hook_event_name の間に挟むフィールド(`,` で終わる JSON。省くと何も挟まない)
 # @returns 入力の JSON
 git_payload() {
-  printf '{"session_id":"%s","hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"%s"}}' \
-    "$1" "${2:-git add .}"
+  printf '{"session_id":"%s",%s"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"%s"}}' \
+    "$1" "${3:-}" "${2:-git add .}"
 }
 
 # git コマンドを書いた Bash の呼び出しを流し、判定を返す(git は実行しない)。
 #
 # @param $1 セッション
 # @param $2 コマンド(省くと `git add .`)
+# @param $3 挟むフィールド(`git_payload` と同じ)
 # @returns `judge_payload` の判定
 git_verdict() {
   judge_payload "$block_hook" "$(git_payload "$@")"
@@ -132,6 +136,11 @@ agent_verdict s16 PostToolUse "$foreground_implementer" >/dev/null
 expect pass "$(git_verdict s16)" "前面で起動した implementer が終わると git add が通る"
 
 expect deny "$(agent_verdict s17 PreToolUse "$background_implementer")" "run_in_background: true を明示した implementer は起動が拒否される"
+
+# サブエージェントの中の Bash 呼び出しは、入力に `agent_id` / `agent_type` が載る。
+in_subagent_fields='"agent_id":"ab90e859b438c06a1","agent_type":"implementer",'
+agent_verdict s26 PreToolUse "$foreground_implementer" >/dev/null
+expect deny "$(git_verdict s26 'git add --dry-run -- README.md' "$in_subagent_fields")" "implementer の実行中は、サブエージェントの中から呼んだ git add も拒否される"
 
 # 残った印の種類は有効期間でしか外から見えないので、最後に印を古くして見分ける。implementer の印を
 # 先に古くしておくのは、種類を問わず最も古い印を消す実装だと implementer の印が消えるようにするため。

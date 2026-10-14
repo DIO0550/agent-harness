@@ -9,7 +9,9 @@
 # (design-composer の pr-391)。implementer が実装を書いている最中も同じ形になる。
 # implementation-flow「サブエージェントの使い方」の「返ってきたら git status を見る」は
 # 戻ってきた**後**の話で、**実行中**にコミットするなとは書かれていなかった穴を塞ぐ。
-# 印がある間は、呼び出し元(親かサブエージェントか)を問わず止める。
+# 印がある間は、呼び出し元(親かサブエージェントか)を問わず止める。印がいつ消えるかは
+# track-verification-agent-activity.sh、前面・背景それぞれで実行中に誰の git が走りうるかの実測は
+# harness/case-law/process.md。
 #
 # CI / git hooks(層1・2)では代替できない。この競合はセッションの実行タイミングだけが原因で、
 # コミット後のリポジトリの状態には痕跡が残らない。block-run-without-install.sh と同じ

@@ -8,17 +8,19 @@
 # 対応する規約: implementation-flow「サブエージェントの使い方」/ 分類 `subagent-control`。
 # 実行中の git 操作を止める理由と止める相手は block-git-during-verification-agent.sh の冒頭。
 #
-# 呼び出し単位では相関を取らない。PreToolUse/PostToolUse の JSON に呼び出しを一意に
-# 結び付ける ID が無い(record-firings.sh も session_id 単位でしか束ねていない)。
-# 個々の呼び出しへ対応付けず、マーカーファイルの数だけで「現在何件実行中か」を見る
+# 呼び出し単位では相関を取らない。Task/Agent の PreToolUse と PostToolUse には同じ `tool_use_id` が
+# 載る(実測)が、「現在何件実行中か」はマーカーファイルの数だけで答えられるので使っていない
 # (FIFO: 開始で1つ作り、終了で同じ種類の最も古い1つを消す。どれを消すかを問わなくても
 # 種類ごとの総数は合う)。ファイル名に種類を入れるのは、印の有効期間を種類で変えるため
 # (block-git-during-verification-agent.sh)。
 #
-# 「終了」は Task/Agent の PostToolUse で、エージェントの完了ではない。背景で起動すると
-# PostToolUse が起動の直後に来るので、実行中でも印は残らない(design-composer で実測)。
-# そのため対象のエージェントは `run_in_background: true` を明示した起動を PreToolUse で
-# 拒否し、印も作らない。
+# 「終了」は Task/Agent の PostToolUse で、エージェントの完了ではない。前面で起動すると完了時に来る
+# (背景へ移された場合は、移された時点で来ると読める)が、背景で起動すると起動の直後に来るので、
+# 実行中でも印は残らない。そのため対象のエージェントは `run_in_background: true` を明示した起動を
+# PreToolUse で拒否し、印も作らない。塞いでいないのは、前面で起動したあと背景へ移された場合
+# (実測した実行環境では、120 秒を超えた起動は約 120 秒で移された)。移されるかは PreToolUse の入力には
+# 現れない。`run_in_background` を省いて同じメッセージに並べて起動した場合は未測。実測の回数と
+# 未測の範囲は harness/case-law/process.md。
 #
 # planner や harness-counter など、道具か定義で作業ツリーを書き換えないエージェントは対象外。
 # 対象にすると背景で起動できなくなり、定義に反した書き換えは返った後の `git status` で見つかる

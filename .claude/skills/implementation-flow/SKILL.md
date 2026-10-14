@@ -170,8 +170,8 @@ Issue: #<番号>
 ## フェーズ 6: 実装の検証(`implementation-reviewer`)
 
 実装が一通り終わったら差分を `implementation-reviewer` サブエージェントへ渡す。**単独で、前面で
-起動する**(同じメッセージに他のツール呼び出しを並べない)。実装を壊して確かめるので、背景で
-起動すると git 操作の抑止が効かない(「サブエージェントの使い方」)。
+起動する**(同じメッセージに他のツール呼び出しを並べない)。実装を壊して確かめるので、背景に
+なると(前面で起動して約 120 秒で移された場合を含む)git 操作の抑止が効かない(「サブエージェントの使い方」)。
 
 ```text
 ゴール: <ゴール>
@@ -258,14 +258,23 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
   エージェントの書き換えが混ざってコミットに載る
 - **直しは `SendMessage` で続けず、新しい Agent 呼び出しで `implementer` に渡す。** 実行中の印を
   作るフックの matcher は `Task|Agent` で、`SendMessage` には当たらない(`.claude/settings.json`)
-- **実行中に git add / commit / push を挟まない。** ミューテーション実測や実装の途中でコミットすると、
-  その瞬間の書き換えが載る(pr-391 #18)。`block-git-during-verification-agent.sh` が
-  plan-reviewer / implementation-reviewer / implementer の実行中はここを機械的に止める
-  (`.claude/hooks/README.md`)。**止まるのは前面で起動したときだけ**(背景で起動すると起動の
-  直後に PostToolUse が走り、印が消える)。`run_in_background: true` を明示した起動は
-  `track-verification-agent-activity.sh` が拒否する
-- **バックグラウンドで起動した場合は、完了を取り逃さない。** 結果を受け取るまで次のフェーズへ
-  進まない
+- **作業ツリーを書き換えるサブエージェントは単独で前面で起動し、完了の結果を受け取るまで
+  git add / commit / push を挟まない**(同じメッセージに他のツール呼び出しを並べない)。
+  ミューテーション実測や実装の途中でコミットすると、その瞬間の書き換えが載る(pr-391 #18)。
+  `block-git-during-verification-agent.sh` が実行中の印がある間の git 操作を機械的に止めるが
+  (対象は `.claude/hooks/README.md`)、印が残るのは前面にある間だけ。
+  `run_in_background: true` を明示した起動は `track-verification-agent-activity.sh` が拒否するが、
+  前面で起動しても、実測した実行環境では 120 秒を超えた起動は約 120 秒で背景へ移され、移された後は
+  印が無い(フックの冒頭)。
+  単独で起動するのは、移された後に並べた呼び出しが実行中に走りうるため。
+  実測の記録は `harness/case-law/process.md`
+- **バックグラウンドになった場合は、完了を取り逃さない**(前面で起動して約 120 秒で移された
+  場合を含む)。結果を受け取るまで次のフェーズへ進まない
+- **セッションの途中で `.claude/agents/` に足した定義は、同じセッションから呼べないことがある**
+  (リモート実行環境で `Agent type not found` を実測。呼べた回もある)。そのときは `general-purpose` に
+  定義ファイルを読ませて代行させ、定義の `tools` に無いツールを使わないことを prompt に書く。
+  代行中は印も作られないので、作業ツリーを書き換えるサブエージェントは前面で単独で起動し、
+  完了を受け取るまで git add / commit / push を挟まない
 
 ## 参照ファイル
 
