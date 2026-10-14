@@ -207,7 +207,9 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
 - **実行中に git add / commit / push を挟まない。** ミューテーション実測の途中でコミットすると、
   その瞬間の書き換えが載る(pr-391 #18)。`block-git-during-verification-agent.sh` が
   plan-reviewer / implementation-reviewer の実行中はここを機械的に止める
-  (`.claude/hooks/README.md`)
+  (`.claude/hooks/README.md`)。**止まるのは前面で起動したときだけ**(背景で起動すると起動の
+  直後に PostToolUse が走り、印が消える)。`run_in_background: true` を明示した起動は
+  `track-verification-agent-activity.sh` が拒否する
 - **バックグラウンドで起動した場合は、完了を取り逃さない。** 結果を受け取るまで次のフェーズへ
   進まない
 

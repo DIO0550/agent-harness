@@ -41,6 +41,9 @@ if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   echo "pre-push: 取ってきて即実行するコマンドの判定表"
   bash .claude/hooks/lib/run-without-install-cases.sh
 
+  echo "pre-push: 実行中フラグの判定表"
+  bash .claude/hooks/lib/verification-agent-cases.sh
+
   echo "pre-push: 閉じる Issue の検査の判定表"
   bash .github/scripts/check-pr-closing-issue-cases.sh
 else
