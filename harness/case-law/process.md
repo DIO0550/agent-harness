@@ -43,6 +43,44 @@
 
 戻さずに指摘へ対応すると、自分の変更とエージェントの書き換えが混ざってコミットに載る。
 
+## `subagent-control` — サブエージェントの起動とフックの入力を実測した(design-composer #1032)
+
+移植元が planner / implementer を足したとき(#1031)に前提のまま残した点を、計測用のフック(入力を
+tmp へ書き出すだけ。測り終えて消した)で確かめた(2026-10-10、Claude Code on the web の 1 セッション)。
+Claude Code と実行環境の振る舞いなので、このリポジトリにもそのまま当てはまる。
+
+| 確かめたこと | 結果 |
+|---|---|
+| `planner` / `implementer` が定義どおり起動するか | implementer 3 回・planner 4 回、すべて起動した(`Agent type not found` は出ない)。`tools` は定義どおり(planner は Edit / Write を持たない) |
+| implementer **自身**の `git add` | 前面で起動した implementer の中の `git add --dry-run` は deny された。そのとき実行中の印も在った |
+| implementer の実行中に**親**の `git add` を挟めるか | 挟めなかった。同じメッセージに Agent(前面)と Bash を並べると、Bash の PreToolUse は Agent の PostToolUse の後に来た(1 回)。Agent を並べた場合は測っていない |
+| Agent の PreToolUse の入力に `run_in_background` が載るか | `tool_input` に `true` / `false` で載る(Agent の PreToolUse 6 件すべて) |
+| `run_in_background: false` を渡して前面で起動したか | 11 回とも、起動の直後には返らなかった(最初は前面)。起動から 120 秒以内に終わった 4 回(5.7〜49.6 秒)は前面のまま完了の結果が返った。120 秒を超えた 7 回(planner・plan-reviewer・implementer・実装検証のエージェント)は、すべて起動から 120.4〜120.6 秒で「Async agent launched」が返り、背景へ移された |
+| `run_in_background` を省き、同じメッセージに複数の Agent を並べた起動 | 読み取り専用のレビュアー 9 件(2 メッセージ)は、すべて起動から 0.5〜16.8 秒で「Async agent launched」が返った(最初から背景)。作業ツリーを書き換えるエージェントをこの形で起動した場合は測っていない |
+| 前面で起動したときの PostToolUse | 完了時に来る(`tool_response.status: "completed"`) |
+| 背景で起動したときの PostToolUse | 起動の直後に来る(`"async_launched"` / `isAsync: true` / `agentId` 付き)。120 秒で背景へ移されたエージェントは、完了の時点で印のディレクトリが空だった。移された implementer では「Async agent launched」が返った時刻と印のディレクトリの mtime が一致したので、移された時点で PostToolUse が来て印が消えたと読める(その瞬間の入力は取れていない) |
+| Agent の Pre と Post を結び付ける ID | 両方に同じ `tool_use_id` が載る(揃った 6 組すべて) |
+| `SubagentStop` | 前面(1 回)・背景(1 回)とも完了時に届いた(`agent_id` / `agent_type` 付き)。背景で起動したものを `TaskStop` で止めたときは届かなかった |
+| サブエージェントの中の呼び出しを PreToolUse で見分けられるか | 見分けられる。サブエージェントの中の Bash / Write / Edit には `agent_id` / `agent_type` が載り、親の呼び出しには無い。`session_id` は親と同じ。Agent 自身の PreToolUse には起動される側の `agent_id` が無く(`subagent_type` だけ)、PostToolUse の `tool_response.agentId` で分かる |
+| セッションの途中で `.claude/settings.json` に足した配線 | 足した直後から効いた(`SubagentStop`) |
+
+未測: 前面で起動したサブエージェントを人が止めたとき(Esc / 停止ボタン)に、PostToolUse と
+`SubagentStop` が来るか。
+
+#1031 で観察したこと(別のセッションなので、上の計測には入っていない):
+
+- セッションの途中で `.claude/agents/` に足した定義が、同じセッションの途中から呼べた。
+  `implementation-flow`「サブエージェントの使い方」の「呼べないことがある」とは別の結果で、どちらも起きる
+- `block-git-during-verification-agent.sh` はコマンドの文字列だけを見るので、git を実行しない
+  コマンド(本文に `git add` の綴りを含むだけ)も止まる
+
+**判定の分かれ目:** git 操作の競合は、**誰の呼び出しか**と**いま前面か背景か**を分けて見る。前面の
+起動中に git を叩きうるのはサブエージェント自身で、親の呼び出しは返るまで走らない(Bash で 1 回)。
+背景の起動中は親も動く。`run_in_background: false` で前面に起動しても、この実行環境では 120 秒を超えた
+起動は 7 件とも約 120 秒で背景へ移された。印が効くのはその前までで、移された後は実行が続いていても印は無い。
+前面だったかは渡した値ではなく返りで見る。完了の結果なら最後まで前面、起動の約 120 秒後に
+「Async agent launched」が返ったら前面から移されたもの、起動の直後に返ったら最初から背景。
+
 ## `hook-environment` — `.claude/hooks/` が発火しない環境だった
 
 `echo hook-canary` が deny されずに通った回が 2 回。
@@ -52,6 +90,27 @@
 
 `.claude/hooks/` の `pre-push-*` は同じスクリプトを走らせる**即時フィードバック層**であって、
 強制力の層ではない（`.claude/hooks/README.md`「強制力の序列」）。
+
+## `hook-environment` — 起動の形で発火が割れた対照(design-composer #1032)
+
+同じ日(2026-10-10)・同じ Issue の 2 つのセッションで、`.claude/hooks/` の発火が割れた。
+
+| | 1 つ目 | 2 つ目 |
+|---|---|---|
+| 起動 | Issue の assigned で起動した routine(3 リポジトリを `/home/user` 配下に並べる) | 前のセッションが別のセッションとして起動(対象のリポジトリだけ) |
+| 起動時の作業ディレクトリ | `/home/user` | リポジトリルート |
+| セッションの中で見た `CLAUDE_PROJECT_DIR` | 空 | 空 |
+| `echo hook-canary` | 通った | deny された |
+| 発火ログの見出し(SessionStart) | 無い | ある |
+| 読み方(`.claude/hooks/README.md` の表) | 本当に不発 | 発火している |
+
+`.claude/settings.json` のコマンドは `${CLAUDE_PROJECT_DIR:-.}` を基準にしている。差は起動時の
+作業ディレクトリとリポジトリの数だけだが、**どちらが効いたかは切り分けていない**。候補は 2 つで、
+複数リポジトリの起動ではプロジェクトの settings が読まれないか、読まれても `.` が `/home/user` を
+指してスクリプトが見つからないか。フックのプロセスから見た環境変数は測っていない。
+
+**判定の分かれ目:** 不発を見たら、まず起動時の作業ディレクトリがリポジトリルートかを見る。違うなら、
+その回の不発は実行環境の性質ではなく起動の形の結果かもしれない。切り分けるまでは両方を残す。
 
 ## 層を選ぶときの実測 — 確かめずに降りると偏る
 

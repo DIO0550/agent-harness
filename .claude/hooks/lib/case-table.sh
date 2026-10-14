@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #
 # 判定表の走行部。フックへ JSON を流し、期待どおりの判定になるかを 1 行ずつ報告する。
-# `canary-cases.sh` と `run-without-install-cases.sh` が source する。
+# `canary-cases.sh` と `run-without-install-cases.sh` と `verification-agent-cases.sh` が source する。
 #
-# 使い方: source したうえで次のどちらかを呼ぶ。
-#   run_case_table <フックのパス>          # 標準入力から `期待|コマンド` の表を読む
-#   hook_judge <フックのパス> <コマンド>   # 1 件だけ判定する
+# 使い方: source したうえで次のどれかを呼ぶ。
+#   run_case_table <フックのパス>              # 標準入力から `期待|コマンド` の表を読む
+#   hook_judge <フックのパス> <コマンド>       # 1 件だけ判定する
+#   judge_payload <フックのパス> <JSON>        # 入力の JSON を組んで 1 件だけ判定する
+#   report_case <期待> <判定> <ケースの名前>   # 1 件の結果を `ok` / `NG` で報告する
 #
 # 期待は 4 つ。`miss` / `overdeny` の綴りを `pass` / `deny` と分けてあるのは、並べると
 # 次に読む人がバグ・意図した挙動と読み違えてフック側の Why not ごと消しにいくため。
@@ -40,9 +42,21 @@
 # それだけ見る表は全件通ってしまう(実測)。JSON として読んで決定の中身を確かめ、
 # フックが 0 で終わることまで見る(PreToolUse は exit 2 以外の異常終了を素通りさせる)。
 hook_judge() {
-  local hook="$1" command_text="$2" hook_env_path="${3:-$PATH}" payload output status
+  local hook="$1" command_text="$2" hook_env_path="${3:-$PATH}" payload
   payload="$(printf '%s' "$command_text" |
     python3 -c 'import json,sys; print(json.dumps({"tool_input":{"command":sys.stdin.read()}}))')"
+  judge_payload "$hook" "$payload" "$hook_env_path"
+}
+
+# 組んだ入力の JSON をフックへ 1 件流し、判定を標準出力へ書く。`hook_judge` の
+# `tool_input.command` だけでは足りない入力(`session_id` やツール名を持つもの)に使う。
+#
+# @param $1 フックのパス
+# @param $2 フックへ渡す入力の JSON
+# @param $3 フックを走らせるときの PATH(`hook_judge` と同じ)
+# @returns `hook_judge` と同じ
+judge_payload() {
+  local hook="$1" payload="$2" hook_env_path="${3:-$PATH}" output status
   output="$(printf '%s' "$payload" | PATH="$hook_env_path" bash "$hook")"
   status=$?
   if [ "$status" -ne 0 ]; then
@@ -91,12 +105,23 @@ run_case_table() {
     decision="$(hook_judge "$hook" "$case_command" "$hook_env_path")"
     [ "$expected" = "miss" ] && [ "$decision" = "pass" ] && decision="miss"
     [ "$expected" = "overdeny" ] && [ "$decision" = "deny" ] && decision="overdeny"
-    if [ "$decision" = "$expected" ]; then
-      printf 'ok   %-8s %s%s\n' "$expected" "$label_prefix" "$case_command"
-      continue
-    fi
-    printf 'NG   expected=%s got=%s  %s%s\n' "$expected" "$decision" "$label_prefix" "$case_command"
-    failed=1
+    report_case "$expected" "$decision" "$label_prefix$case_command" || failed=1
   done
   return "$failed"
+}
+
+# 1 件の結果を `ok` / `NG` の 1 行で報告する。
+#
+# @param $1 期待
+# @param $2 実際の判定
+# @param $3 報告する行に出すケースの名前
+# @returns 期待どおりなら 0、食い違えば 1
+report_case() {
+  local expected="$1" decision="$2" label="$3"
+  if [ "$decision" = "$expected" ]; then
+    printf 'ok   %-8s %s\n' "$expected" "$label"
+    return 0
+  fi
+  printf 'NG   expected=%s got=%s  %s\n' "$expected" "$decision" "$label"
+  return 1
 }
