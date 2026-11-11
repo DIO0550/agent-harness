@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # 判定表の走行部。フックへ JSON を流し、期待どおりの判定になるかを 1 行ずつ報告する。
-# `canary-cases.sh` と `run-without-install-cases.sh` と `verification-agent-cases.sh` が source する。
+# `canary-cases.sh` と `run-without-install-cases.sh` と `verification-agent-cases.sh` と
+# `parent-session-edit-cases.sh` が source する。
 #
 # 使い方: source したうえで次のどれかを呼ぶ。
 #   run_case_table <フックのパス>              # 標準入力から `期待|コマンド` の表を読む

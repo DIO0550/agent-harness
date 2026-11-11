@@ -73,6 +73,7 @@ wc -l rules/*.md                          # 常時ロードの行数（上限 90
 bash .claude/hooks/lib/canary-cases.sh    # カナリアの判定表
 bash .claude/hooks/lib/run-without-install-cases.sh   # 取ってきて即実行するコマンドの判定表
 bash .claude/hooks/lib/verification-agent-cases.sh    # 実行中フラグの判定表
+bash .claude/hooks/lib/parent-session-edit-cases.sh   # 親セッションの編集の拒否の判定表
 bash .github/scripts/check-pr-closing-issue-cases.sh  # 閉じる Issue の検査の判定表
 ```
 
