@@ -9,10 +9,11 @@ Claude Code のセッション中に走るフックスクリプトの置き場�
 | --- | --- | --- |
 | `hook-canary.sh` | `PreToolUse` (Bash) | **カナリア**。`echo hook-canary` を必ず deny する。フックが発火する環境かを確かめるためだけのもの |
 | `session-url-notice.sh` | `SessionStart` | **セッション URL の提示**。Issue へ残すよう促す(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」) |
-| `record-firings.sh` | `SessionStart` / `PostToolUse` (Skill/Task/Agent) | **スキル・サブエージェントの発火ログ**。`harness-record` の「発火」欄の材料 |
+| `record-firings.sh` | `SessionStart` / `PostToolUse` (Skill/Task/Agent) | **スキル・サブエージェントの発火ログ**。`harness-record` の「発火」欄の材料。`block-parent-session-edit.sh` も implementation-flow の中かどうかを決めるために読む |
 | `post-merge-review.sh` | `PostToolUse` (Bash / merge) | **マージ後の 3 つ**を提示する(Issue への追記 / 続きの Issue / `harness-record`) |
 | `track-verification-agent-activity.sh` | `PreToolUse` + `PostToolUse` (Task/Agent) | **作業ツリーを書き換えるサブエージェントの実行中フラグ**。`plan-reviewer` / `implementation-reviewer` / `implementer` の開始・終了をセッション別・種類別のマーカーで数える。この 3 つの起動のうち、**`run_in_background: true` を明示したものは拒否する**(背景で起動すると印が起動の直後に消えるため。フックの冒頭) |
 | `block-git-during-verification-agent.sh` | `PreToolUse` (Bash) | 上のマーカーがある間、`git add` / `commit` / `push` を拒否する。古いマーカーは無視する(種類ごとに有効期間が違う。値と理由はフックの本文)。拒否文に印のディレクトリを出す |
+| `block-parent-session-edit.sh` | `PreToolUse` (Edit/Write) | **implementation-flow の中の親セッションの編集を拒否**(`implementation-flow`「役割の分担」)。入力に `agent_id` の無い(親の)Edit / Write で、リポジトリの中のファイルを指し、発火ログの最後の区切りが flow の中なら deny する。区切りになる起動と通す入力はフックの冒頭 |
 | `block-run-without-install.sh` | `PreToolUse` (Bash) | **インストールせずに取ってきて実行するコマンドの禁止**。`npx` / `bunx` / `uvx` / `pnpm dlx` / `yarn dlx` / `pipx run` / `npm exec` / `npm create` / `pnpm create` / `yarn create`、および引数がリモートのときの `go run` / `deno run` を拒否する |
 
 **移植元の検査フック（lint / typecheck / doc コメント / テスト規約 / import 規約 / 判別子の
@@ -33,11 +34,11 @@ Claude Code のセッション中に走るフックスクリプトの置き場�
 
 | ファイル | 使う側 | 内容 |
 | --- | --- | --- |
-| `lib/case-table.sh` | 下の 3 つが `source` する | 判定表の走行部。フックへ JSON を流し、`permissionDecision` が `deny` か・JSON として妥当か・フックが 0 で終わるかまで見る。**判定表は共有してよいが、フック本体は共有しない**（表は `source` の失敗がその場で落ちて分かるのに対し、フックは PreToolUse のフェイルオープンに吸われて黙って素通りするため） |
+| `lib/case-table.sh` | 下の 4 つが `source` する | 判定表の走行部。フックへ JSON を流し、`permissionDecision` が `deny` か・JSON として妥当か・フックが 0 で終わるかまで見る。**判定表は共有してよいが、フック本体は共有しない**（表は `source` の失敗がその場で落ちて分かるのに対し、フックは PreToolUse のフェイルオープンに吸われて黙って素通りするため） |
 | `lib/canary-cases.sh` | 手で実行する（「動作確認」） | `hook-canary.sh` へ判定表を流す |
 | `lib/run-without-install-cases.sh` | 手で実行する（「動作確認」） | `block-run-without-install.sh` へ判定表を流す。あわせて jq の無い経路（PATH を絞って狙って踏む）と、`PreToolUse` / `Bash` の枝から呼ばれていることも検算する（表は JSON を実物のフックへ直接流すので、配線が切れていても表だけは全件通る） |
-
 | `lib/verification-agent-cases.sh` | `harness/githooks/pre-push`（「動作確認」でも手で走らせる） | `track-verification-agent-activity.sh` と `block-git-during-verification-agent.sh` へ Task/Agent と git の呼び出しを順に流し、起動の拒否と git 操作の拒否が期待どおりかを報告する。確かめる項目は判定表の冒頭コメントと各ケースの名前が持つ |
+| `lib/parent-session-edit-cases.sh` | `harness/githooks/pre-push`(「動作確認」でも手で走らせる) | 本物の `record-firings.sh` に発火ログを書かせてから `block-parent-session-edit.sh` へ Edit / Write の呼び出しを流し、親の編集の拒否と素通りが期待どおりかを報告する。2 本は発火ログのパスを各自で組み立てるので、その綴りが揃っていることもここで守る。確かめる項目は各ケースの名前が持つ |
 
 ## 強制力の序列 — フックが発火しない実行環境がある
 
@@ -66,19 +67,31 @@ git のイベントに対応物が無い。
 | `block-git-during-verification-agent.sh`(セッション中の行為の禁止) | **無し**。この競合はセッションの実行タイミングだけが原因で、コミット後のリポジトリの状態には痕跡が残らない |
 | `block-run-without-install.sh`(セッション中の行為の禁止) | **無し**。取ってきて即実行したことはリポジトリに何も残さない(依存ファイルにもロックファイルにも書かれない)ので、push の時点では検査する対象が無い |
 | `session-url-notice.sh`(セッション URL の提示) | **無し**。URL はセッションの中にしか無く、残す先も GitHub のコメントなので、push の時点で痕跡が残らない。落ちても穴は開かない(規約が rules/process.md に残り、失っても情報が 1 つ足りないだけでガードは破れない) |
-| `record-firings.sh`(発火ログ) | **無し**。ただし失敗しても穴は開かない(セッション見出しが無いログは `harness-record` が「計測対象外」と書く設計で、誤ったゼロにはならない)。カナリアと同じ「失敗してもガードが破れない」検出系 |
+| `record-firings.sh`(発火ログ) | **無し**。`harness-record` の計測は失敗しても穴は開かない(セッション見出しが無いログは `harness-record` が「計測対象外」と書く設計で、フック不発が誤ったゼロにはならない。ただしスキルは、Skill ツールを通らない起動だと見出しがあっても発火行が書かれない → 下の「区切りがログに残らない起動」)。一方、同じログを読む `block-parent-session-edit.sh` は、ログに implementation-flow の区切りが無ければ素通りするので、こちらが落ちると親の編集の拒否も効かなくなる |
+| `block-parent-session-edit.sh`(セッション中の行為の禁止) | **無し**。誰が編集したか(親かサブエージェントか)はコミットに残らない。発火する環境でも残る穴は下 |
 | `post-merge-review.sh`(マージ後の提示) | **無し**。提示するだけでブロックしないので、落ちても穴は開かない |
+
+`block-parent-session-edit.sh` が発火する環境でも残る穴は 5 つ。
+
+| 残る穴 | 内容 |
+| --- | --- |
+| 区切りがログに残らない起動 | Skill ツールを通らない起動は、スキルの起動がログに残らない(`skill` の行が書かれない)。利用者が打ったスラッシュコマンドと、手順を読んで implementation-flow を進める回がこれに当たる。移植元の実測は `/implementation-flow` を打った回だけで、`skill` の行が書かれず、`planner` を起動する前の親の Write は通り、起動した後は deny された([design-composer #1277 の実測](https://github.com/DIO0550/design-composer/issues/1277#issuecomment-6708032746))。他のスラッシュコマンド・手順を読んで進める回は**推論**。その推論では、implementation-flow の区切りの後に `/harness-record` / `/harness-growth` を打った回は、前の区切りが残ったまま拒否が続く(抜け方は「例外」) |
+| matcher の外の道具 | `NotebookEdit` / `MultiEdit` は matcher(`Edit\|Write`)に入っていないので見ない。入力のキーが違う(`NotebookEdit` は `notebook_path`) |
+| Bash 経由の書き換え | `sed -i` やリダイレクトでの書き換えは見ない。コマンド文字列から書き換え先のパスを確定できず、このフックでは判定できない |
+| 正規化しないパス | `..` を挟んだ絶対パスや symlink 越しのパスは、綴りがルートと前方一致しないとリポジトリの外として通る(正規化はしない) |
+| 発火しない起動の形 | フックが発火しない起動の形(「発火しているかを確かめる」)では効かない |
 
 ### 「代替不能」が実際に不発だったとき、手動で肩代わりする
 
-`block-git-during-verification-agent.sh` と `block-run-without-install.sh` は上の表のとおり
-CI の代替が**無し**。
+`block-git-during-verification-agent.sh` と `block-run-without-install.sh` と `block-parent-session-edit.sh` は
+上の表のとおり CI の代替が**無し**。
 カナリア(次項)で不発が確定したら、「記録のみ」で終わらせず、そのフックが止めるはずだった
 操作を手動で確認する(`分類: hook-environment-guard-miss`)。
 
 | 不発したフック | 手動で確認すること |
 | --- | --- |
 | `block-git-during-verification-agent.sh` | 作業ツリーを書き換えるサブエージェントの実行中に作られたコミットの diff を、そのエージェントが返したはずの内容とだけ照合する(意図しない変更が紛れていないか) |
+| `block-parent-session-edit.sh` | このセッションの親の Edit / Write の履歴を見直し、implementation-flow の中でリポジトリの中のファイルを編集していないか確認する |
 | `block-run-without-install.sh` | **セッションの Bash 実行履歴を遡る。** 実行した跡はリポジトリに残らないので、見られるのは履歴だけ。`npx` 等を実行していたら、それが持ち込んだファイルが作業ツリーに無いかを `git status` で確かめる |
 
 `session-url-notice.sh` の不発は対応不要(上の表のとおり、失っても情報が 1 つ足りないだけで
@@ -136,6 +149,9 @@ deny のメッセージは、`jq` / `python3` が欠けていればその名前�
 
 ## 例外(エスケープハッチ)
 
+- `block-parent-session-edit.sh` が implementation-flow の外の作業でも拒否したら、その Edit / Write を
+  `implementer` に渡す。正規の抜け方はこれだけ(残る穴は「カバー範囲と残る穴」)。
+  拒否を外すためだけに `harness-record` / `harness-growth` を起動しない
 - `post-merge-review.sh` はマージを**ブロックしない**(`additionalContext` を返すだけ)。マージは人の判断で行われるので、記録が無いことを理由に止めても記録の質は上がらないため
   - 検知対象は `mcp__github__merge_pull_request` と `gh pr merge` のみ。素の `git merge` は見ない(ベースブランチの取り込みで日常的に走るため、拾うと誤発火のほうが多くなる)
 - `block-git-during-verification-agent.sh` は、種類ごとの有効期間(フックの本文)より古いマーカーを無視する。実行が異常終了してマーカーを消し損ねたときに、恒久的にブロックし続けないため(フェイルオープン側へ倒す)
@@ -154,6 +170,9 @@ bash .claude/hooks/lib/run-without-install-cases.sh
 # 実行中フラグの判定表（起動の拒否と、印が残っている間だけ git 操作が止まること）
 bash .claude/hooks/lib/verification-agent-cases.sh
 
+# implementation-flow の中の親セッションの編集の判定表(発火ログは本物の record-firings.sh に書かせる)
+bash .claude/hooks/lib/parent-session-edit-cases.sh
+
 # 個々のフックへ JSON を直接流す
 echo '{"tool_input":{"command":"echo hook-canary"}}' | bash .claude/hooks/hook-canary.sh
 echo '{"tool_input":{"command":"npx create-vite"}}' | bash .claude/hooks/block-run-without-install.sh
@@ -163,6 +182,6 @@ echo '{"tool_name":"Bash","tool_input":{"command":"gh pr merge 1"}}' | bash .cla
 
 ## 関連するスキル
 
-- `.claude/skills/implementation-flow/` — フェーズ 7 で push の前にカナリアを実行する
+- `.claude/skills/implementation-flow/` — フェーズ 7 で push の前にカナリアを実行する。「役割の分担」の親の編集の禁止を `block-parent-session-edit.sh` が強制する
 - `.claude/skills/harness-record/` — `record-firings.sh` のログを「発火」欄の材料として読む
 - `.claude/skills/harness-growth/` — どの層へ置くかを決める(層の序列は上の表)
