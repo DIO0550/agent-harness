@@ -68,12 +68,13 @@ PR #317 の「ボタンで入れ替えるのはダサイ」はこの形(記録 p
 `${TMPDIR:-/tmp}/agent-harness-firings-<session_id>.log` へ 1 行ずつ書き出している
 (1 列目 = 時刻、2 列目 = `session` / `skill` / `agent`、3 列目 = 名前)。
 **記憶(自己申告)からではなく、このログを読んで記録の「発火」に書く。**
+このスキルを Skill ツールで起動したときは、その起動が `implementation-flow` の区切りになる(→ `.claude/hooks/block-parent-session-edit.sh`)。
 
 ```bash
 ls "${TMPDIR:-/tmp}"/agent-harness-firings-*.log
 ```
 
-読み方は先頭の `session` 行(セッション見出し)で決まる。
+読み方は先頭の `session` 行(セッション見出し)で決まる。スキルは Skill ツールを通らない起動(打ったスラッシュコマンド等)だとログに行が書かれないので、発火行がある回でもスキルの行が抜けうる(→ `.claude/hooks/README.md`「カバー範囲と残る穴」)。
 
 | ログの状態 | 記録に書くこと(書式は崩さない — `count.sh --shrink` が数える) |
 | --- | --- |
