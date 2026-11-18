@@ -191,6 +191,8 @@ if [ "${1:-}" = "--shrink" ]; then
     | sed 's/^- 発火: `\([^`]*\)` \([0-9]*\)回/\1 \2/' \
     | awk '{sum[$1] += $2} END {for (name in sum) printf "     %-34s %4d 回\n", name, sum[name]}' \
     | sort -k2 -rn
+  # `investigator` / `investigation-reviewer` は `flow:investigation` でだけ起動し、その種類は PR を
+  # 出さず記録が残らないので、ここに出続ける(発火 0 を退役の根拠にしない)。
   printf '%s\n' "   計測した記録で発火 0 のリポジトリ内装置 — 退役候補:"
   for device in ../../.claude/skills/*/ ../../.claude/agents/*.md; do
     name="$(basename "$device" .md)"

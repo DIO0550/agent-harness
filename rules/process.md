@@ -57,8 +57,8 @@ Issue は判断の履歴、という分担にする。採用した案だけを�
 
 ## 着手した Issue は、その回で閉じる
 
-**着手したら自分をアサインし、PR 本文の `Closes #<番号>` で閉じる。** 手では閉じない
-(検査は `.github/workflows/pr-closing-issue.yml`。例外は `harness-record` の記録 PR だけ)。
+**着手したら自分をアサインし、PR 本文の `Closes #<番号>` で閉じる。** 手では閉じない(例外は PR を出さない
+`flow:investigation` だけ)。閉じる Issue を持たない PR は `.github/workflows/pr-closing-issue.yml` が落とす(例外は `harness-record` の記録 PR)。
 
 - 続きが要るものは**新しい Issue を立てて元からリンクする**。閉じた Issue は開け直さない
   (その回に変わった判断は、閉じたままコメントで残す → `implementation-flow` フェーズ 8)
