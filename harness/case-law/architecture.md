@@ -69,3 +69,18 @@ services に置かれたロジックの多くは、`rules/architecture.md` の 1
 
 1 feature でしか使わないのに `src/domains/` へ置く / 2 つ以上の feature が必要なのに
 `features/<x>/domains/` に留める。どちらの向きにも出る。
+
+## `module-api` — deep import と export の見方
+
+- deep import は、パスの段数を数えず、**公開口(`index.ts` 等)の有無で**判定する。カテゴリのように
+  1 段挟むフォルダがあると、段数だけでは入れ子モジュールの公開口への import と内部ファイルへの
+  deep import を区別できない(移植元は検出器 `import-rule-violations.py` で見ている)
+- テストのためだけの export は、テストを公開 API 経由に書き直せないかを先に見る
+
+(`.claude/agents/implementation-reviewer.md` から、規範の 1 文を残して移した。)
+
+## `layer-dependency` — 公開 API に自前の型を出すかを実装前に決める
+
+引数や戻り値に自前の型が出ることを「外へ漏らす」とみなす案と、受け取ってよいとする案で
+判断が割れる。決めずに進めると実装後に判断が変わって取り消しになる。
+(`.claude/agents/plan-reviewer.md` から、規範の 1 文を残して移した。)

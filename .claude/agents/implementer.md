@@ -15,12 +15,17 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 - **ゴール**
 - **計画と却下案** — `plan-reviewer` を通した計画。却下済みの案を、新しい根拠なしに採らない
 - **Issue 番号**
+- **種類** — Issue の `flow:*` ラベル。`flow:bugfix` / `flow:refactor` では**工程**も(値は
+  `.claude/skills/implementation-flow/SKILL.md` フェーズ 5 の渡すもの)
 - (直しのときだけ)**直す指摘** — 呼び出し側が採用したものだけ。採らなかった指摘には手を出さない
 
 ## 先に読むもの
 
 - `.claude/skills/claim-verification/SKILL.md` — 事実の主張を書いたら確かめる手順
 - `rules/process.md`「実装を始める前に」の読む順と、そこが指す `rules/` の節
+- 種類のファイル(`.claude/skills/implementation-flow/SKILL.md`「作業の種類」の表)があれば、その全体 —
+  フェーズ 5 の工程ごとに書いてよい範囲だけでなく、フェーズ 5 の外の節(書き換えない範囲など)と、
+  直しのときに掛かるフェーズ 6・7 の決まりも持つ
 
 ## 手順
 
@@ -32,7 +37,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 3. **コメント・doc に事実の主張を書いたら、書き終えるたびに `claim-verification` の手順で照合する。**
    Skill ツールは持たないので、上の `SKILL.md` を読んでその手順に従う(Issue・PR 本文は呼び出し側が持つ)
 4. `.claude/skills/implementation-flow/SKILL.md` フェーズ 7 の push 前検査(`bash harness/githooks/pre-push`)を
-   走らせ、**終了コードで**判定する(検査の一覧はここへ写さない)
+   走らせ、**終了コードで**判定する(検査の一覧はここへ写さない)。
+   `flow:bugfix` の `工程: 再現テスト` だけは、再現テストが落ちる状態が正しい。
+   `.claude/skills/implementation-flow/bugfix.md` フェーズ 5 の第 1 工程で親が確かめる条件に照らし、満たすなら
+   再現テストを走らせる検査の出力を返し、満たさないならその時点で止めて返す
 
 ## 返すもの
 
