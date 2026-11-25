@@ -1,0 +1,45 @@
+name: 調査（ソースを変えずに答えを書く）
+description: ソースを変えずに調べて、答えを Issue に書いて閉じる作業
+body:
+  - type: markdown
+    attributes:
+      value: |
+        作業の種類（`flow:*`）のラベルは人が付けます（テンプレートでは付けません）。
+  - type: textarea
+    id: goal
+    attributes:
+      label: ゴール
+      description: 答えが出たとき、何ができるようになっているか
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: 問い
+      description: 何に答えれば終わりか
+    validations:
+      required: true
+  - type: textarea
+    id: done-when
+    attributes:
+      label: 終わりの条件
+      description: どこまで確かめたら答えとするか（再現した／呼び出し元を数えきった 等）
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: 観測したこと
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+  - type: textarea
+    id: split
+    attributes:
+      label: 分割の判断
+      description: この Issue を子に分けるなら、その軸と理由。分けないなら、その理由。作る時点で決まっていなければ空でよく、決めたら書き足す
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: スコープ外

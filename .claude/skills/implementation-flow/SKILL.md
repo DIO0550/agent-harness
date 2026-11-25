@@ -17,7 +17,7 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 | 4 | 計画の検証 | `plan-reviewer` の指摘と、それへの対応 |
 | 5 | 実装 | コードとテスト |
 | 6 | 実装の検証 | `implementation-reviewer` の指摘と、それへの対応 |
-| 7 | PR | 差分を説明する PR |
+| 7 | PR | 差分と判断を説明する PR |
 | 8 | マージ後の追記 | 閉じた Issue へのコメントと、続きの Issue |
 
 **検証の観点はこのファイルに書かない。** `.claude/agents/plan-reviewer.md` と
@@ -30,7 +30,7 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 
 | ラベル | 種類のファイル | 変わるフェーズ |
 | --- | --- | --- |
-| `flow:feature` | 無し(このファイルのまま) | 無し |
+| `flow:feature` | [`feature.md`](feature.md) | 3 / 5 / 6 / 7 に足す |
 | `flow:bugfix` | [`bugfix.md`](bugfix.md) | 1 / 3 / 5 / 6 / 7 に足す |
 | `flow:refactor` | [`refactor.md`](refactor.md) | 3 / 5 / 6 に足す |
 | `flow:investigation` | [`investigation.md`](investigation.md) | 1 に足し、3 / 4 / 8 を置き換え、5〜7 は無い |
@@ -76,8 +76,13 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 - **自分で潰せず回答を待つなら、そこで止める**。選択肢と根拠を Issue へ書き、
   **作業中のセッションの URL を併記する**(`rules/process.md`)。推測で埋めて計画へ進まない
 - 対応する Issue が無ければ**先に作る**。Issue 無しで実装を始めない(判断の置き場所が無くなる)
+  - 自分で進める Issue には、作成の呼び出しでも後からでも assignee を付けない(理由は `rules/process.md`
+    「Issue に紐づいて起動したら、セッションの URL を Issue に残す」)。フェーズ 2 で分けた Issue のうち、
+    このセッションで続けて進めるものも同じ
 - 仕様の拠り所は設計ドキュメント。このリポジトリにはまだ `docs/` が無いので、拠り所は
   `rules/`、過去の実例は `harness/case-law/`
+- ゴールの書き方は `.github/ISSUE_TEMPLATE/implementation.yml` と `.github/ISSUE_TEMPLATE/epic.yml` の
+  ゴール欄にも写してある。変えたら揃える
 
 ### 種類の確定
 
@@ -98,8 +103,14 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
      2 つ以上・表に無い値を外すのも、人が答えたときだけ
    - 人がいない起動(Issue の assign から起動した等)なら、提案と根拠をセッションの URL と一緒に
      Issue に書いて止める
-4. Issue を作るときも、その場で種類を尋ねてラベルを付ける(3 と同じ)
-5. **親が自分で選んだラベルは付けない・外さない。** 親は種類を提案するまでで、決めるのは人。
+4. Issue を作るときは、**作成の呼び出しの中で**種類を決める(作った後でラベルを付ける形は、忘れても
+   何も止まらない)。行の書式は `.claude/hooks/lib/issue-flow-kind-violations.py` の定数が持ち、欠けた
+   作成は `block-issue-without-flow-kind.sh` が止める(止めた理由に書式が出る)
+   - (a) 対話中なら AskUserQuestion で尋ね、人が答えた `flow:*` を作成の呼び出しのラベルに含める
+   - (b) 人がいない起動なら、本文に提案の行を書く
+   - (c) `implementation-flow` に通さない Issue(`harness-growth` の介入・棚卸し・Epic など)は、本文に
+     通さない行を書く。Epic なら、作成の呼び出しのラベルに `epic` も含める
+5. **親が自分で選んだ `flow:*` ラベルは付けない・外さない。** 親は種類を提案するまでで、決めるのは人。
    選ぶ側と手順が軽くなって得をする側が同じだと軽い側へ倒れる(`implementation-flow` を通さず
    検証エージェントだけを呼んだ実例が `harness/case-law/process.md`「単発（まだ語彙にしていない）」の
    pr-473 にある)。「無ければ `flow:feature`」のような既定値も同じ理由で置かない(ラベルの無い
@@ -112,7 +123,8 @@ description: "agent-harness の実装を ゴールの確定 → タスクの分�
 `rules/process.md`「タスクの分割」に従う。判断軸は「**独立してマージできるか**」。
 片方だけ入っても壊れない単位が 2 つ以上見えたら Issue を分ける。
 
-分けた / 分けなかったのどちらも判断なので、理由を Issue に残す。
+分けた / 分けなかったのどちらも判断なので、理由を Issue に残す。分けた側の Issue の種類は、
+フェーズ 1「種類の確定」の 4 で決める。
 
 ## フェーズ 3: 計画
 
@@ -216,20 +228,29 @@ Issue: #<番号>
 ゴール: <ゴール>
 Issue: #<番号>
 種類: <`flow:*` のラベル>
-工程: <`flow:bugfix` は 再現テスト / 修正、`flow:refactor` は 現状の固定 / リファクタ。この 2 つのときだけ>
+工程: <`flow:feature` は 仕様の固定 / 仕様の実現、`flow:bugfix` は 再現テスト / 修正、`flow:refactor` は 現状の固定 / リファクタ。この 3 つのときだけ>
 計画: <plan-reviewer を通した計画と却下案>
 ```
 
 - 実装の手順は `.claude/agents/implementer.md` が持つ
-- **`flow:bugfix` / `flow:refactor` では `implementer` を 2 つの工程に分けて起動する。** `implementer` は
-  commit しないので、1 回で書かせると「テストだけが先に入ったコミット」が作れない。工程ごとに何を
-  書かせ、何を確かめるかは種類のファイルのフェーズ 5 が持つ
-  - **第 1 工程はテストだけを書かせる。** 返ってきたら「サブエージェントの使い方」の `git status --porcelain`
-    の突き合わせを、計画の第 1 工程のテストのファイルだけに狭める。種類のファイルの確かめ方で
-    合格したら commit する。これが **第 1 工程のコミット**で、第 2 工程以降はこれと比べる
+- **`flow:feature` / `flow:bugfix` / `flow:refactor` では `implementer` を 2 つの工程に分けて起動する。**
+  `implementer` は commit しないので、1 回で書かせると第 1 工程の分だけが先に入ったコミットが作れない。
+  工程ごとに何を書かせ、何を確かめるかは種類のファイルのフェーズ 5 が持つ
+  - **第 1 工程は、種類のファイルのフェーズ 5 が第 1 工程に書かせるとしたものだけを書かせる。** 返ってきたら
+    「サブエージェントの使い方」の `git status --porcelain` の突き合わせを、計画のファイル表で第 1 工程に
+    挙げたファイルだけに狭める。種類のファイルの確かめ方で合格したら commit する。これが
+    **第 1 工程のコミット**で、第 2 工程以降はこれと比べる
   - **第 1 工程に書くものが無いなら、第 1 工程を省く。** 第 2 工程を起動する前の HEAD を第 1 工程のコミットの
     代わりとして Issue に書く(どの場合に無いかは種類のファイル)
   - **第 2 工程で実装を変えさせる。** フェーズ 6・7 の直しも第 2 工程の値で渡す
+  - **第 2 工程から返ったら(`flow:feature` / `flow:bugfix`)、親が次を走らせて終了コードが 0 であることを
+    確かめる。** フェーズ 5 の第 2 工程に限る。フェーズ 6・7 の直しのたびに何を確かめるかは、種類のファイルの
+    フェーズ 6 が持つ
+
+    ```bash
+    git diff --exit-code <第 1 工程のコミット> -- <第 1 工程のテストのファイル>
+    ```
+
 - **`implementer` が計画から外れて止めて返ってきたら、** 親が外れた理由を Issue に追記してから、
   続けるかを決めて起動し直す。後でまとめて書くと理由が思い出せなくなる
 - **Issue・PR 本文に事実の主張を書いたら、書き終えるたびに親が `claim-verification` スキルで
@@ -255,7 +276,9 @@ Issue: #<番号>
 
 - **PR を出す前に、フェーズ 1「種類の確定」の 1 のコマンドでラベルを読み直す。** 変わっていたら
   フェーズ 1 へ戻る(同じ節の 6)
-- **PR 本文は差分の説明に絞る。** 判断の履歴は Issue 側にある
+- **PR 本文は `pull-request` スキルで書く。** 意思決定の書き方は `.claude/.pr-template.yml` の
+  `decision_record` に従い、材料にはコミット本文に加えて Issue の計画・却下案を使う(Issue からは
+  省かない → `rules/process.md`「実装の進め方」)
 - **本文に `Closes #<Issue 番号>` を書く**(`rules/process.md`「着手した Issue は、その回で閉じる」)。
   `.github/workflows/pr-closing-issue.yml` が、閉じる Issue を持たない PR を落とす
 - CI を通す(いまは `pr-closing-issue` のみ)。push 前の検査や CI が落ちたら、直しは
@@ -308,7 +331,7 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
    開け直さない**
 2. **続きの作業が要るものは、新しい Issue を立てて元の Issue からリンクする**
    (`rules/process.md`「着手した Issue は、その回で閉じる」)。スコープ外にしたもの・
-   決定が変わって作り直しになったものが該当する
+   決定が変わって作り直しになったものが該当する。種類はフェーズ 1「種類の確定」の 4 で決める
 3. **`harness-record` スキルでその回の評価を記録する**。記録を残すところまでで、集計と規約の
    見直しは行わない(→ `harness-growth`)
 
@@ -323,6 +346,8 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
 - **`implementer` から返ったら、`git status --porcelain` を「計画のファイル表と、渡した指摘の対象」と
   突き合わせる。** 一致したら commit して、それを作業ツリーの基準にする(push はフェーズ 7)。
   2 つの工程に分ける種類の第 1 工程は、フェーズ 5 が突き合わせる範囲を狭める
+- **implementation-flow の中のコミットの区切りはこの手順(工程と、`implementer` から返るたび)が決め、
+  `commit` スキルの分割ルールより優先する。** 件名と本文の書き方は `commit` スキルに従う
 - **それ以外のエージェントから返ったら、指摘を読む前に作業ツリーが基準のまま
   (`git status --porcelain` が空)かを見る**(`分類: subagent-control`)。エージェント定義に
   「変更するな」と書いても書き換えることがある。戻さずに指摘へ対応すると、`implementer` の変更と
@@ -355,6 +380,7 @@ bash harness/githooks/pre-push    # push 前検査ひとまとめ(構文 / shell
 | `.claude/agents/plan-reviewer.md` | 計画の検証観点(エージェントが読む) | フェーズ 4 |
 | `.claude/agents/implementer.md` | 実装するエージェントの受け取るもの・返すもの | フェーズ 5 / 6 / 7 |
 | `.claude/agents/implementation-reviewer.md` | 実装の検証観点(エージェントが読む) | フェーズ 6 |
+| [`feature.md`](feature.md) | `flow:feature` で足す手順 | `flow:feature` で、「作業の種類」の表のフェーズ |
 | [`bugfix.md`](bugfix.md) | `flow:bugfix` で足す手順 | `flow:bugfix` で、「作業の種類」の表のフェーズ |
 | [`refactor.md`](refactor.md) | `flow:refactor` で足す手順 | `flow:refactor` で、「作業の種類」の表のフェーズ |
 | [`investigation.md`](investigation.md) | `flow:investigation` で足す・置き換える手順 | `flow:investigation` で、「作業の種類」の表のフェーズ |

@@ -47,6 +47,18 @@ if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   echo "pre-push: 親セッションの編集の判定表"
   bash .claude/hooks/lib/parent-session-edit-cases.sh
 
+  echo "pre-push: Issue の作業の種類の判定表"
+  bash .claude/hooks/lib/issue-flow-kind-cases.sh
+
+  echo "pre-push: git add -A の拒否の判定表"
+  bash .claude/hooks/lib/git-add-all-cases.sh
+
+  echo "pre-push: コミット本文の行頭 # の拒否の判定表"
+  bash .claude/hooks/lib/commit-md-heading-cases.sh
+
+  echo "pre-push: 保護ブランチの編集の拒否の判定表"
+  bash .claude/hooks/lib/protected-branch-edit-cases.sh
+
   echo "pre-push: 閉じる Issue の検査の判定表"
   bash .github/scripts/check-pr-closing-issue-cases.sh
 else

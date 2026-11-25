@@ -57,7 +57,11 @@ fi
 
 # 出力は JSON。message には二重引用符・バックスラッシュ・生の改行を入れない
 # (jq を使わずに組み立てるため。改行は \n のまま JSON のエスケープとして渡す)。
-message="このセッションの URL は ${session_url}。${target}着手した時点でその Issue へこの URL をコメントすること(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」)。\\n同じ URL のコメントが既にあれば足さない。判断待ちで止まるときは、選択肢と根拠を書いたコメントに改めて併記する。"
+#
+# assignee は付けさせない。着手の印は URL のコメントが担い、assign はそれを起点に起動するルーティンへ
+# 任せる合図として残す(移植元では全セッションが同じアカウントで書き、assignee では誰が着手したかを
+# 見分けられなかった。rules/process.md の同じ節)。
+message="このセッションの URL は ${session_url}。${target}着手した時点でその Issue へこの URL をコメントし、assignee は付けないこと(rules/process.md「Issue に紐づいて起動したら、セッションの URL を Issue に残す」)。\\n同じ URL のコメントが既にあれば足さない。判断待ちで止まるときは、選択肢と根拠を書いたコメントに改めて併記する。"
 
 cat <<JSON
 {

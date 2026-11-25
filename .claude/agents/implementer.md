@@ -15,7 +15,7 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 - **ゴール**
 - **計画と却下案** — `plan-reviewer` を通した計画。却下済みの案を、新しい根拠なしに採らない
 - **Issue 番号**
-- **種類** — Issue の `flow:*` ラベル。`flow:bugfix` / `flow:refactor` では**工程**も(値は
+- **種類** — Issue の `flow:*` ラベル。`flow:feature` / `flow:bugfix` / `flow:refactor` では**工程**も(値は
   `.claude/skills/implementation-flow/SKILL.md` フェーズ 5 の渡すもの)
 - (直しのときだけ)**直す指摘** — 呼び出し側が採用したものだけ。採らなかった指摘には手を出さない
 
@@ -38,15 +38,18 @@ tools: Read, Edit, Write, Grep, Glob, Bash
    Skill ツールは持たないので、上の `SKILL.md` を読んでその手順に従う(Issue・PR 本文は呼び出し側が持つ)
 4. `.claude/skills/implementation-flow/SKILL.md` フェーズ 7 の push 前検査(`bash harness/githooks/pre-push`)を
    走らせ、**終了コードで**判定する(検査の一覧はここへ写さない)。
-   `flow:bugfix` の `工程: 再現テスト` だけは、再現テストが落ちる状態が正しい。
-   `.claude/skills/implementation-flow/bugfix.md` フェーズ 5 の第 1 工程で親が確かめる条件に照らし、満たすなら
-   再現テストを走らせる検査の出力を返し、満たさないならその時点で止めて返す
+   `flow:bugfix` の `工程: 再現テスト` と `flow:feature` の `工程: 仕様の固定` では、計画で落ちると書いた
+   テストが落ちる状態が正しい。種類のファイル(`.claude/skills/implementation-flow/bugfix.md` /
+   `.claude/skills/implementation-flow/feature.md`)のフェーズ 5 の第 1 工程で親が確かめる条件に照らし、
+   満たすならそのテストを走らせる検査の出力を返し、満たさないならその時点で止めて返す
 
 ## 返すもの
 
 1. **変更したファイル** — `git status --porcelain` の出力そのまま(呼び出し側が突き合わせる)
 2. **走らせた検査と終了コード** — 落ちたものは出力の末尾も
 3. **計画との差分** — 外れて止めたなら、どこで何が理由で外れたか。外れていないなら「無し」
+4. **種類のファイルのフェーズ 5 が返させるとしたもの** — `flow:feature` の `工程: 仕様の実現` では、
+   第 1 工程を省いていなければ各サイクルの記録、省いていれば計画に書いた代わりの確かめ方の結果
 
 ## してはいけないこと
 
