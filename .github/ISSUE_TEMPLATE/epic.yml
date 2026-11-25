@@ -1,0 +1,33 @@
+name: Epic（最初から子に分けて進める親 Issue）
+description: 独立してマージできる子 Issue に分けて進める作業をまとめる親 Issue
+title: "[Epic] "
+labels:
+  - epic
+body:
+  - type: markdown
+    attributes:
+      value: |
+        子 Issue は、この Issue の sub-issue として紐づけてください。この Issue では実装せず、実装は子 Issue で行います。子 Issue の作業の種類（`flow:*`）のラベルは、子の側で人が付けます（テンプレートでは付けません）。
+  - type: textarea
+    id: goal
+    attributes:
+      label: ゴール
+      description: 子 Issue がすべて閉じたとき、何ができるようになっているか。実装手段ではなく達成状態で書く
+    validations:
+      required: true
+  - type: textarea
+    id: split
+    attributes:
+      label: 分割の判断
+      description: 何を軸に子へ分けたか。それぞれが独立してマージできる理由
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: スコープ外
+      description: この Epic では扱わないもの

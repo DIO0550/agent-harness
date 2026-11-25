@@ -1,0 +1,27 @@
+name: 実装（機能追加・リファクタリング）
+description: 機能の追加やリファクタリング。既存の振る舞いの誤りはバグを選ぶ
+body:
+  - type: markdown
+    attributes:
+      value: |
+        作業の種類（`flow:*`）のラベルは人が付けます（テンプレートでは付けません）。
+  - type: textarea
+    id: goal
+    attributes:
+      label: ゴール
+      description: 何ができるようになれば終わりか（1〜3 行）。実装手段ではなく達成状態で書く
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+  - type: textarea
+    id: split
+    attributes:
+      label: 分割の判断
+      description: この Issue を子に分けるなら、その軸と理由。分けないなら、その理由。作る時点で決まっていなければ空でよく、決めたら書き足す
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: スコープ外

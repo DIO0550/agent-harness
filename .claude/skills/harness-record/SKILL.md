@@ -138,7 +138,8 @@ Issue と PR に残っている記録から復元し、復元できない分は�
 - **指摘が 0 件の回でも PR は出す。** 記録が残ること自体が目的
 - `rules/` ・フック・スキルには触れない。差分は `harness/records/` の 1 ファイルだけになる
 - **記録 PR は Issue を持たない。** 判断を残す回ではないので立てず、本文に `Closes` も書かない
-  (`rules/process.md`「着手した Issue は、その回で閉じる」の例外)。**この例外は「`harness/records/`
+  (`rules/process.md`「着手した Issue は、その回で閉じる」の例外。`pull-request` スキルの Issue 連携
+  (Issue のリンク必須・`Closes`)も当てない)。**この例外は「`harness/records/`
   配下の新規 1 ファイルだけ」という上の形でだけ成立する** — 検査(`.github/scripts/
   check-pr-closing-issue.sh`)がそれを条件にしているので、2 ファイル目が要るようになったら
   検査の条件も一緒に直す

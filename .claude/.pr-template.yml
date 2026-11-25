@@ -1,0 +1,194 @@
+title_format: "<emoji> [<tag>]: #<issue> <subject>"
+
+base_branch: "main"  # 1 Issue = 1 PR で main へ入れる。分岐元の自動検出は、古いローカルの main や自分のリモート追跡ブランチを拾うため使わない
+
+types:
+  basic:
+    - emoji: "🐛"
+      tag: "Bug Fix"
+      description: "バグ修正"
+    - emoji: "✨"
+      tag: "New Feature"
+      description: "新機能"
+    - emoji: "♻️"
+      tag: "Refactoring"
+      description: "リファクタリング"
+    - emoji: "🎨"
+      tag: "UI/UX"
+      description: "UI/UX改善"
+    - emoji: "🚀"
+      tag: "Performance"
+      description: "パフォーマンス改善"
+    - emoji: "🧪"
+      tag: "Tests"
+      description: "テスト追加/修正"
+    - emoji: "📝"
+      tag: "Doc"
+      description: "ドキュメント更新"
+    - emoji: "🔧"
+      tag: "Config"
+      description: "設定変更"
+    - emoji: "🔥"
+      tag: "Remove"
+      description: "削除"
+    - emoji: "💥"
+      tag: "Breaking"
+      description: "破壊的変更"
+
+body_sections:
+  - key: "summary"
+    title: "概要"
+    required: true
+    prompt: "このPRで何を変更したかを1-3行で記載"
+  - key: "change_type"
+    title: "変更の種類"
+    required: true
+    prompt: "types から該当するものを選択"
+  - key: "details_added"
+    title: "追加した内容"
+    required: false
+    prompt: "新規追加した機能やファイル"
+  - key: "details_changed"
+    title: "変更した内容"
+    required: true
+    prompt: "既存機能への変更点"
+  - key: "details_removed"
+    title: "削除した内容"
+    required: false
+    prompt: "削除した機能やファイル"
+  - key: "decisions"
+    title: "意思決定と経緯"
+    required: "by_decision_record"  # 出力可否は decision_record.mode が決める（off なら省略）
+    prompt: >
+      なぜその方針を選んだかを記載する。
+      git log <base_branch>..HEAD --format=%B で各コミット本文の意思決定を集め、
+      PR全体としての方針判断に束ね直す（コミット本文の丸写しはしない）。
+      出力する内容は decision_record.mode に従う。
+      代替案は必ず却下理由とセットで書き、トレードオフは何を犠牲にしたかを書く。
+  - key: "diagrams"
+    title: "システム図"
+    required: false
+    prompt: >
+      変更内容を視覚的に表すシステム図を生成する。
+      原則として Mermaid flowchart（四角＋矢印）で表現する。
+      状態遷移・API通信・DBスキーマ・依存関係のいずれも、まず flowchart で描く。
+      flowchart で表現しにくい複雑なレイアウトや複数図の統合は ASCII art にフォールバックする。
+      専用図（stateDiagram-v2 / sequenceDiagram / erDiagram / graph）は、
+      flowchart でも ASCII でも本質を伝えきれない極めて特殊なケースのみ使用する。
+      判断が曖昧・複合的な場合は必ず flowchart を選ぶ。
+      変更箇所はstyle・note・[NEW]注釈で強調する。
+      .specs/のimplementation-plan.mdが存在する場合は参考にする。
+      図解不要な場合はセクション自体を省略する。
+    notation:
+      primary: "mermaid"
+      fallback: "ascii"
+    diagram_types:
+      - type: "flowchart"
+        trigger: "デフォルト。すべての変更をまず flowchart で表現する（処理フロー・状態遷移・API通信・DBスキーマ・依存関係を含む）"
+      - type: "stateDiagram-v2"
+        trigger: "flowchart でも ASCII でも状態遷移が伝わらない極めて特殊なケースのみ"
+      - type: "sequenceDiagram"
+        trigger: "flowchart / ASCII で時系列のやり取りを表現しきれない極めて特殊なケースのみ"
+      - type: "erDiagram"
+        trigger: "flowchart / ASCII で関係性を表現しきれない複雑な DB スキーマ変更のみ"
+      - type: "graph"
+        trigger: "flowchart で代替できない依存関係表現が必要な極めて特殊なケースのみ"
+  - key: "issues"
+    title: "関連Issue"
+    required: true
+    prompt: "Closes/Fixes/Refs などのキーワードで記載"
+  - key: "tests"
+    title: "テスト"
+    required: true
+    prompt: "実行したテストと結果を記載"
+  - key: "review_points"
+    title: "レビューポイント"
+    required: false
+    prompt: "レビュアーに重点的に見てほしい点"
+
+decision_record:
+  # PR本文の「意思決定と経緯」セクションをどこまで書くか
+  #   off      : セクションを出力しない
+  #   minimal  : 「なぜこの方針か」を2-3行
+  #   standard : 背景 / なぜこの方針か / 影響とトレードオフ
+  #   detailed : standard + 検討した代替案 + 今回見送ったこと + 参考
+  mode: "detailed"
+
+  # 該当するPRは mode を1段階上げる（standard -> detailed）
+  escalate_when:
+    - "アーキテクチャ・設計方針の変更"
+    - "破壊的変更"
+    - "外部に公開するAPI・仕様の変更"
+    - "パフォーマンス・セキュリティ上のトレードオフを伴う変更"
+    - "依存関係の追加・削除"
+
+  # 各コミット本文に記録された意思決定の収集元
+  source: "git log <base_branch>..HEAD --format=%B"
+
+  # mode ごとに出力する小見出し（subsections の key を並べる）
+  modes:
+    "off": []   # YAML 1.1 では off が真偽値になるためクォートする
+    "minimal": ["why"]
+    "standard": ["background", "why", "impact"]
+    "detailed": ["background", "why", "alternatives", "impact", "deferred", "refs"]
+
+  # 小見出しの定義（body_sections とは別レイヤー。decisions セクションの内部構造）
+  subsections:
+    - key: "background"
+      title: "背景"
+      prompt: "この変更が必要になった経緯・課題・制約"
+    - key: "why"
+      title: "なぜこの方針か"
+      prompt: "PR全体として採用した方針とその理由"
+    - key: "alternatives"
+      title: "検討した代替案"
+      prompt: "採用しなかった案と却下理由。再検討しうる条件があれば併記する"
+    - key: "impact"
+      title: "影響とトレードオフ"
+      prompt: "既存挙動・互換性・運用への影響、受け入れたトレードオフ"
+    - key: "deferred"
+      title: "今回見送ったこと"
+      prompt: "スコープ外にした項目と理由。後続Issueがあれば番号を併記する"
+    - key: "refs"
+      title: "参考"
+      prompt: "Issue・設計ドキュメント・外部資料へのリンク"
+
+rules:
+  issue_link:
+    required: true
+    close_keywords:
+      - "Closes"
+      - "Fixes"
+    reference_keywords:
+      - "Refs"
+      - "Relates to"
+  title:
+    include_type: true
+    include_issue: true
+    max_length: 72
+  quality_gate:
+    require_summary: true
+    require_test_result: true
+    require_review_points_when_complex: true
+  forbidden:
+    vague_titles:
+      - "修正"
+      - "対応"
+      - "調整"
+      - "更新"
+      - "fix"
+      - "update"
+
+checklist:
+  - "セルフレビューを実施した"
+  - "意思決定と経緯を記載した（decision_record.mode が off 以外の場合）"
+  - "必要なテストを実施した"
+  - "必要なドキュメントを更新した（必要時）"
+  - "関連IssueをPRにリンクした"
+  - "破壊的変更がある場合は明記した"
+
+examples:
+  - title: "✨ [New Feature]: #123 ユーザ検索にロール絞り込みを追加"
+    summary: "ユーザ一覧画面にロールフィルタを追加し、検索条件を保存するように変更。"
+  - title: "🐛 [Bug Fix]: #456 Safariで画像アップロードが失敗する不具合を修正"
+    summary: "FormData生成処理のcontent-type指定を修正し、Safariでも正常に送信できるようにした。"

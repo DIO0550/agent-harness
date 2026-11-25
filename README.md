@@ -43,10 +43,10 @@ echo hook-canary                          # フックが発火する環境かを
 | [`harness/case-law/`](harness/case-law/) | 判例。常時ロードしない。迷ったとき・指摘を受けたときだけ読む |
 | [`harness/records/`](harness/records/) | マージ後の評価記録。`count.sh` が分類ごとの再発数を数える |
 | [`harness/githooks/`](harness/githooks/) | 実行環境に依存しない push 前検査（層 2） |
-| [`.claude/skills/`](.claude/skills/) | 進め方（`implementation-flow` / `harness-record` / `harness-growth` / `claim-verification`） |
+| [`.claude/skills/`](.claude/skills/) | 進め方（`implementation-flow` / `harness-record` / `harness-growth` / `claim-verification` / `commit` / `pull-request`）。`commit` / `pull-request` が読むテンプレートは `.claude/.commit-template.yml` / `.claude/.pr-template.yml` |
 | [`.claude/agents/`](.claude/agents/) | 計画・実装・調査の担い手（`planner` / `implementer` / `investigator`）と検証の観点（`plan-reviewer` / `implementation-reviewer` / `investigation-reviewer` / `harness-counter`） |
 | [`.claude/hooks/`](.claude/hooks/) | セッション中に効くフック（層 3） |
-| [`.github/`](.github/) | 無条件に効く検査（層 1） |
+| [`.github/`](.github/) | 無条件に効く検査（層 1）と、Epic・実装・バグ・調査の Issue テンプレート |
 
 ## 仕組み
 
@@ -76,6 +76,10 @@ bash .claude/hooks/lib/canary-cases.sh    # カナリアの判定表
 bash .claude/hooks/lib/run-without-install-cases.sh   # 取ってきて即実行するコマンドの判定表
 bash .claude/hooks/lib/verification-agent-cases.sh    # 実行中フラグの判定表
 bash .claude/hooks/lib/parent-session-edit-cases.sh   # 親セッションの編集の拒否の判定表
+bash .claude/hooks/lib/issue-flow-kind-cases.sh       # Issue の作業の種類の判定表
+bash .claude/hooks/lib/git-add-all-cases.sh           # git add -A の拒否の判定表
+bash .claude/hooks/lib/commit-md-heading-cases.sh     # コミット本文の行頭 # の拒否の判定表
+bash .claude/hooks/lib/protected-branch-edit-cases.sh # 保護ブランチの編集の拒否の判定表
 bash .github/scripts/check-pr-closing-issue-cases.sh  # 閉じる Issue の検査の判定表
 ```
 
@@ -89,3 +93,6 @@ bash .github/scripts/check-pr-closing-issue-cases.sh  # 閉じる Issue の検�
   それを走らせる CI
 - design-composer の評価記録 117 本（判例だけを持ってきている。再発数はこのリポジトリの
   最初のマージから数え直す）
+- `harness/evals/`（常時ロードの記述を削ったときの回答を比べる実験）。課題と採点が TypeScript の
+  テスト配置・命名と、移植元のテスト規約スキャン・固定コミットに結びついている。手法を使うなら、
+  取り込む側の規約に合わせて課題と採点器から作り直す

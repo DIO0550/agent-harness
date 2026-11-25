@@ -1,0 +1,48 @@
+name: バグ（既存の振る舞いの誤り）
+description: 既存の振る舞いの誤り。拠り所（設計ドキュメント・`rules/` の節や既存のテスト）と食い違う動き
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        作業の種類（`flow:*`）のラベルは人が付けます（テンプレートでは付けません）。
+  - type: textarea
+    id: goal
+    attributes:
+      label: ゴール
+      description: 直ったとき、何ができるようになっているか
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: どの入力・操作・状態から起きるか
+      placeholder: |
+        1.
+        2.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する結果
+      description: 拠り所となる設計ドキュメント・`rules/` の節があれば添える
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の結果
+    validations:
+      required: true
+  - type: textarea
+    id: split
+    attributes:
+      label: 分割の判断
+      description: この Issue を子に分けるなら、その軸と理由。分けないなら、その理由。作る時点で決まっていなければ空でよく、決めたら書き足す
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: スコープ外

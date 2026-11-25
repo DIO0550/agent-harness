@@ -1,0 +1,280 @@
+format: "<emoji> [<tag>]: #<issue> <subject>"
+
+types:
+  basic:
+    - emoji: "🎉"
+      tag: "Initial Commit"
+      description: "最初のコミット"
+    - emoji: "✨"
+      tag: "New Feature"
+      description: "新機能"
+    - emoji: "🐛"
+      tag: "Bug Fix"
+      description: "バグ修正"
+    - emoji: "🚑"
+      tag: "Hotfix"
+      description: "ホットフィックス"
+    - emoji: "🩹"
+      tag: "Quick Fix"
+      description: "簡単な修正"
+    - emoji: "♻️"
+      tag: "Refactoring"
+      description: "リファクタリング"
+    - emoji: "🎨"
+      tag: "Structure"
+      description: "コード構造改善"
+    - emoji: "🔥"
+      tag: "Remove"
+      description: "削除"
+    - emoji: "🚚"
+      tag: "Move"
+      description: "ファイル移動/リネーム"
+    - emoji: "🚧"
+      tag: "WIP"
+      description: "作業中"
+    - emoji: "💥"
+      tag: "Breaking"
+      description: "破壊的変更"
+
+  ui_style:
+    - emoji: "💄"
+      tag: "UI/UX"
+      description: "UI/UX"
+    - emoji: "♿"
+      tag: "Accessibility"
+      description: "アクセシビリティ"
+    - emoji: "💫"
+      tag: "Animation"
+      description: "アニメーション"
+    - emoji: "📱"
+      tag: "Responsive"
+      description: "レスポンシブ"
+    - emoji: "🍱"
+      tag: "Assets"
+      description: "アセット追加"
+
+  performance_quality:
+    - emoji: "🚀"
+      tag: "Performance"
+      description: "パフォーマンス"
+    - emoji: "🧪"
+      tag: "Tests"
+      description: "テスト"
+    - emoji: "✅"
+      tag: "Tests Pass"
+      description: "テスト通過"
+    - emoji: "🔒"
+      tag: "Security"
+      description: "セキュリティ"
+    - emoji: "🏷️"
+      tag: "Types"
+      description: "型定義"
+    - emoji: "🦺"
+      tag: "Validation"
+      description: "バリデーション"
+
+  docs_config:
+    - emoji: "📝"
+      tag: "Doc"
+      description: "ドキュメント"
+    - emoji: "🔧"
+      tag: "Config"
+      description: "設定ファイル"
+    - emoji: "🔐"
+      tag: "Env"
+      description: "環境変数"
+
+  dependencies:
+    - emoji: "➕"
+      tag: "Add Dep"
+      description: "依存関係追加"
+    - emoji: "➖"
+      tag: "Remove Dep"
+      description: "依存関係削除"
+    - emoji: "⬆️"
+      tag: "Upgrade Dep"
+      description: "依存関係更新"
+    - emoji: "⬇️"
+      tag: "Downgrade Dep"
+      description: "依存関係ダウングレード"
+
+  infra_cicd:
+    - emoji: "👷"
+      tag: "CI"
+      description: "CI/CD"
+    - emoji: "🐳"
+      tag: "Docker"
+      description: "Docker"
+    - emoji: "🧱"
+      tag: "Infra"
+      description: "インフラ"
+    - emoji: "📦"
+      tag: "Release"
+      description: "リリース"
+    - emoji: "🚢"
+      tag: "Deploy"
+      description: "デプロイ"
+
+  git:
+    - emoji: "🔀"
+      tag: "Merge"
+      description: "マージ"
+    - emoji: "⏪"
+      tag: "Revert"
+      description: "リバート"
+
+  data_db:
+    - emoji: "🗃️"
+      tag: "DB"
+      description: "データベース"
+    - emoji: "🌱"
+      tag: "Seed"
+      description: "シードデータ"
+
+  code_quality:
+    - emoji: "✏️"
+      tag: "Typo"
+      description: "タイポ修正"
+    - emoji: "💡"
+      tag: "Comment"
+      description: "コメント追加"
+    - emoji: "🔊"
+      tag: "Log"
+      description: "ログ追加"
+    - emoji: "🔇"
+      tag: "Remove Log"
+      description: "ログ削除"
+    - emoji: "⚰️"
+      tag: "Dead Code"
+      description: "デッドコード削除"
+    - emoji: "🚨"
+      tag: "Lint"
+      description: "Lint修正"
+
+  other:
+    - emoji: "🌐"
+      tag: "i18n"
+      description: "国際化"
+    - emoji: "🔨"
+      tag: "Chore"
+      description: "雑務"
+    - emoji: "⚗️"
+      tag: "Experiment"
+      description: "実験"
+    - emoji: "🛂"
+      tag: "Auth"
+      description: "認可/権限"
+    - emoji: "🧑‍💻"
+      tag: "DX"
+      description: "DX改善"
+    - emoji: "🤡"
+      tag: "Mock"
+      description: "モック"
+
+decision_record:
+  # コミット本文に変更内容と意思決定（背景・採用理由・代替案・影響とトレードオフ）をどこまで書くか
+  #   off      : 本文を書かない（subjectのみ）
+  #   minimal  : 変更内容 + 採用理由
+  #   standard : 変更内容 + 背景 / 採用理由 / 影響とトレードオフ
+  #   detailed : standard + 代替案 + 参考
+  mode: "detailed"
+
+  # 本文の書き出し（off を除く全 mode 共通）:
+  # subject 直後に「何をしたか」の要約を箇条書きで書く。見出しは付けない
+  summary:
+    style: "bullet"
+    heading: ""
+
+  # 該当する変更は mode を1段階上げる（standard -> detailed）
+  escalate_when:
+    - "アーキテクチャ・設計方針の変更"
+    - "破壊的変更"
+    - "外部に公開するAPI・仕様の変更"
+    - "パフォーマンス・セキュリティ上のトレードオフを伴う変更"
+    - "非自明な回避策(workaround)の導入"
+    - "依存関係の追加・削除"
+
+  # 該当する変更は mode を1段階下げる（standard -> minimal）
+  skip_when:
+    - "タイポ修正"
+    - "フォーマッタ・Lintの自動修正"
+    - "生成物・スナップショットの更新"
+    - "WIPコミット"
+
+  # mode ごとに出力するセクション（sections の key を並べる）
+  modes:
+    "off": []   # YAML 1.1 では off が真偽値になるためクォートする
+    "minimal": ["why"]
+    "standard": ["background", "why", "impact"]
+    "detailed": ["background", "why", "alternatives", "impact", "refs"]
+
+  sections:
+    - key: "background"
+      title: "背景"
+      prompt: "この変更が必要になった経緯・課題・制約。diffから読み取れない前提を書く"
+    - key: "why"
+      title: "採用理由"
+      prompt: "その方法を採用した理由。「何をしたか」は変更内容に任せ、「なぜそうしたか」を書く"
+    - key: "alternatives"
+      title: "代替案"
+      prompt: "検討したが採用しなかった案と却下理由。再検討しうる条件があれば併記する"
+    - key: "impact"
+      title: "影響とトレードオフ"
+      prompt: "既存挙動・互換性・運用への影響、受け入れたトレードオフ"
+    - key: "refs"
+      title: "参考"
+      prompt: "Issue・PR・設計ドキュメント・外部資料へのリンク"
+
+  format:
+    # 見出しは "<title>:" を単独行に置く。
+    # 行頭 '#' はエディタ経由の編集時にgitがコメント行として除去しうるため使わない
+    heading_style: "<title>:"
+    wrap_width: 72
+    subject_max_length: 72
+
+rules:
+  granularity: "1コミット = 1つの最小単位の変更"
+  max_lines: 50
+  independence: "コミット単体で意味をなす"
+  build: "各コミットでビルドが通る"
+  forbidden_commands:
+    - "git add ."
+    - "git add --all"
+    - "git add -A"
+  forbidden_messages:
+    - "修正"
+    - "対応"
+    - "調整"
+    - "更新"
+    - "fix"
+    - "update"
+
+examples:
+  - subject: "✨ [New Feature]: #123 ユーザ検索にロール絞り込みフィルタを追加"
+    mode: "standard"
+    body: |
+      - GET /api/users に role クエリパラメータを追加
+      - 検索フォームにロール絞り込みのセレクトボックスを追加
+
+      背景:
+      ユーザ一覧が数千件規模になり、目的のユーザに到達できないという
+      問い合わせが継続していた。
+
+      採用理由:
+      サーバ側での絞り込みを選択。クライアント側で絞ると全件取得が前提になり、
+      大規模テナントで初期表示が実用外になるため。
+
+      影響とトレードオフ:
+      role 未指定時の挙動は従来通りで、既存クライアントへの影響はない。
+  - subject: "🐛 [Bug Fix]: #456 Firefox環境でのプロフィール画像アップロード失敗を修正"
+    mode: "minimal"
+    body: |
+      - アップロード時のContent-Typeヘッダの明示指定を削除
+
+      採用理由:
+      FormDataにContent-Typeを明示していたためboundaryが欠落していた。
+      ヘッダ指定を外してブラウザに生成させる方式に統一した。
+  - subject: "♻️ [Refactoring]: #45 #67 認証ロジックをAuthServiceに集約"
+    mode: "standard"
+  - subject: "✏️ [Typo]: READMEのインストール手順の誤字を修正"
+    mode: "off"

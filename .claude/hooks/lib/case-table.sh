@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 #
 # 判定表の走行部。フックへ JSON を流し、期待どおりの判定になるかを 1 行ずつ報告する。
-# `canary-cases.sh` と `run-without-install-cases.sh` と `verification-agent-cases.sh` と
-# `parent-session-edit-cases.sh` が source する。
+# `.claude/hooks/lib/` の `*-cases.sh` が source する(どれが使うかは `.claude/hooks/README.md`「配線」)。
 #
 # 使い方: source したうえで次のどれかを呼ぶ。
 #   run_case_table <フックのパス>              # 標準入力から `期待|コマンド` の表を読む
+#   run_labeled_case_table <フックのパス>      # 標準入力から `期待|ケース名|コマンド` の表を読む
 #   hook_judge <フックのパス> <コマンド>       # 1 件だけ判定する
 #   judge_payload <フックのパス> <JSON>        # 入力の JSON を組んで 1 件だけ判定する
+#   judge_output <出力> <終了コード>           # 走らせ終えたフックの出力から判定する
+#   expected_decision <期待> <判定>            # `miss` / `overdeny` を表の綴りへ戻す
 #   report_case <期待> <判定> <ケースの名前>   # 1 件の結果を `ok` / `NG` で報告する
+#   report_cases_ran <表の名前> <回す前の件数> # 表のケースが 1 件以上走ったかを報告する
+#
+# 食い違いは `report_case` の戻り値と、変数 `cases_failed`(1 件でもあれば 1)の両方で分かる。
+# 表をループで回す判定表は、最後の文を `exit "$cases_failed"` にする。
 #
 # 期待は 4 つ。`miss` / `overdeny` の綴りを `pass` / `deny` と分けてあるのは、並べると
 # 次に読む人がバグ・意図した挙動と読み違えてフック側の Why not ごと消しにいくため。
@@ -29,6 +35,12 @@
 # フックが素通りしても気づけないからで、手で走らせるこの表は落ちれば分かる。
 # 標準入力から渡すのは、長さの上限を固定するケースが argv では
 # `Argument list too long` でフックまで届かないため(実測)。
+
+# 食い違ったケースがあれば 1 になる。
+cases_failed=0
+
+# `report_case` を呼んだ回数。
+cases_reported=0
 
 # フックへ 1 件流し、判定を標準出力へ書く。
 #
@@ -60,6 +72,17 @@ judge_payload() {
   local hook="$1" payload="$2" hook_env_path="${3:-$PATH}" output status
   output="$(printf '%s' "$payload" | PATH="$hook_env_path" bash "$hook")"
   status=$?
+  judge_output "$output" "$status"
+}
+
+# 走らせ終えたフックの出力と終了コードから判定を標準出力へ書く。フックを走らせる前に PATH や
+# 置き場を差し替える判定表が、`judge_payload` を通さずに使う。
+#
+# @param $1 フックの標準出力
+# @param $2 フックの終了コード
+# @returns `hook_judge` と同じ
+judge_output() {
+  local output="$1" status="$2"
   if [ "$status" -ne 0 ]; then
     printf 'error(exit=%s)' "$status"
     return 0
@@ -104,14 +127,43 @@ run_case_table() {
     [ -n "$case_command" ] || continue
     case_command="${case_command//@@/$'\n'}"
     decision="$(hook_judge "$hook" "$case_command" "$hook_env_path")"
-    [ "$expected" = "miss" ] && [ "$decision" = "pass" ] && decision="miss"
-    [ "$expected" = "overdeny" ] && [ "$decision" = "deny" ] && decision="overdeny"
-    report_case "$expected" "$decision" "$label_prefix$case_command" || failed=1
+    report_case "$expected" "$(expected_decision "$expected" "$decision")" "$label_prefix$case_command" || failed=1
   done
   return "$failed"
 }
 
-# 1 件の結果を `ok` / `NG` の 1 行で報告する。
+# 標準入力の `期待|ケース名|コマンド` の表を 1 行ずつ走らせ、`ok` / `NG` をケース名で報告する。
+# ケース名に止める・通す理由を書きたい表(取り込み元のまま残した形など)に使う。
+#
+# @param $1 フックのパス
+# @returns コマンドは最後の列なので `|` を含んでよい。`@@` は改行に、`⇥` はタブに置き換わる
+#          (`<<-` の字下げのようにタブそのものが意味を持つケースを 1 行に書くため)。
+#          食い違いが 1 件でもあれば 1、すべて期待どおりなら 0 で返る
+run_labeled_case_table() {
+  local hook="$1" expected label case_command decision failed=0
+  while IFS='|' read -r expected label case_command; do
+    [ -n "$case_command" ] || continue
+    case_command="${case_command//@@/$'\n'}"
+    case_command="${case_command//⇥/$'\t'}"
+    decision="$(hook_judge "$hook" "$case_command")"
+    report_case "$expected" "$(expected_decision "$expected" "$decision")" "$label" || failed=1
+  done
+  return "$failed"
+}
+
+# 意図した取りこぼし・受け入れた誤検知は、`pass` / `deny` になるのが正解なので表の綴りへ戻す。
+#
+# @param $1 表に書かれた期待
+# @param $2 実際の判定
+# @returns 戻した判定(当たらなければ $2 のまま)
+expected_decision() {
+  local expected="$1" decision="$2"
+  [ "$expected" = "miss" ] && [ "$decision" = "pass" ] && decision="miss"
+  [ "$expected" = "overdeny" ] && [ "$decision" = "deny" ] && decision="overdeny"
+  printf '%s' "$decision"
+}
+
+# 1 件の結果を `ok` / `NG` の 1 行で報告し、`cases_reported` を 1 増やす。食い違えば `cases_failed` を立てる。
 #
 # @param $1 期待
 # @param $2 実際の判定
@@ -119,10 +171,35 @@ run_case_table() {
 # @returns 期待どおりなら 0、食い違えば 1
 report_case() {
   local expected="$1" decision="$2" label="$3"
+  cases_reported=$((cases_reported + 1))
   if [ "$decision" = "$expected" ]; then
     printf 'ok   %-8s %s\n' "$expected" "$label"
     return 0
   fi
   printf 'NG   expected=%s got=%s  %s\n' "$expected" "$decision" "$label"
+  cases_failed=1
   return 1
+}
+
+# 表のケースが 1 件以上走ったか(表を回す前より `cases_reported` が増えたか)を 1 行で報告する。
+#
+# 表の行を消す・`read` の列がずれて全行を読み飛ばすと、ループは `report_case` を 1 回も呼ばずに終わり、
+# `exit "$cases_failed"` は 0 のまま通る。回す前の件数を先に数値か確かめるのは、空の綴りを 0 と読むと
+# 表の前に報告した件数だけで ok になるため。
+#
+# @param $1 報告に出す表の名前
+# @param $2 表を回す前の `cases_reported`
+report_cases_ran() {
+  local table="$1" before="${2:-}"
+  if ! [[ "$before" =~ ^[0-9]+$ ]]; then
+    printf 'NG   %s を回す前の件数が数値ではない(%s)\n' "$table" "${before:-空}"
+    cases_failed=1
+    return 0
+  fi
+  if [[ "$cases_reported" -gt "$before" ]]; then
+    printf 'ok   %s のケースが走った\n' "$table"
+    return 0
+  fi
+  printf 'NG   %s のケースが 1 件も走っていない\n' "$table"
+  cases_failed=1
 }
